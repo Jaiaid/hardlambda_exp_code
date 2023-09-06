@@ -14,6 +14,8 @@ import torchvision.transforms
 
 import redis
 
+BATCH_SIZE = 16
+
 
 class ToyModel(nn.Module):
     def __init__(self):
@@ -74,7 +76,7 @@ class SharedRedisPool(Dataset):
 
 def train_process(rank, world_size, train_strategy, train_dataset):
     model = ToyModel()
-    # model.to("cuda")
+    model.to("cuda")
     # Define the transformations for data preprocessing
     transform = torchvision.transforms.Compose([
         torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
@@ -90,7 +92,7 @@ def train_process(rank, world_size, train_strategy, train_dataset):
 
         # Create data loaders for training and test datasets
         # each process will create its own dataloader to create their own copy
-        batch_size = 16
+        batch_size = BATCH_SIZE
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 
         data_list = []
@@ -103,12 +105,16 @@ def train_process(rank, world_size, train_strategy, train_dataset):
             print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
             print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
             for i in range(0, len(data_list), batch_size):
-                inputs = data_list[i]
+                inputs, labels = data
+                inputs = inputs.cuda()
+                # generate label and move to GPU
+                one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
+                one_hot = one_hot.cuda()
+
                 labels = label_list[i]
                 # zero the parameter gradients
                 optimizer.zero_grad()
                 outputs = model(inputs)
-                one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
                 try:
                     loss = loss_fn(outputs, one_hot)
                     loss.backward()
@@ -119,7 +125,7 @@ def train_process(rank, world_size, train_strategy, train_dataset):
             print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
     elif train_strategy == "shared":
-        batch_size = 16
+        batch_size = BATCH_SIZE
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 
         for epoch in range(2):
@@ -127,10 +133,13 @@ def train_process(rank, world_size, train_strategy, train_dataset):
             print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
             for i, data in enumerate(train_loader, 0):
                 inputs, labels = data
+                inputs = inputs.cuda()
+                # generate label and move to GPU
+                one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
+                one_hot = one_hot.cuda()
                 # zero the parameter gradients
                 optimizer.zero_grad()
                 outputs = model(inputs)
-                one_hot = torch.nn.functional.one_hot(torch.tensor(labels), num_classes=10).float()
                 try:
                     loss = loss_fn(outputs, one_hot)
                     loss.backward()
@@ -141,7 +150,7 @@ def train_process(rank, world_size, train_strategy, train_dataset):
             print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
     elif train_strategy == "sharedpool":
-        batch_size = 16
+        batch_size = BATCH_SIZE
         train_dataset = SharedRedisPool()
         train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 
@@ -150,10 +159,14 @@ def train_process(rank, world_size, train_strategy, train_dataset):
             print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
             for i, data in enumerate(train_loader, 0):
                 inputs, labels = data
+                inputs = inputs.cuda()
+                # generate label and move to GPU
+                one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
+                one_hot = one_hot.cuda()
                 # zero the parameter gradients
                 optimizer.zero_grad()
                 outputs = model(inputs)
-                one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
+                
                 try:
                     loss = loss_fn(outputs, one_hot)
                     loss.backward()
