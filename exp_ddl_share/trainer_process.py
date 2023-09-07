@@ -1,20 +1,14 @@
 import psutil
-import sys
-import ctypes
-import numpy as np
 import torch
 import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 import torch.multiprocessing as mp
 from torch.utils.data import Dataset, DataLoader
-
 import torchvision
 import torchvision.transforms
 
-import redis
-
-BATCH_SIZE = 16
+from dataset import LocalPool, SharedPool, SharedRedisPool, DatasetPipeline
 
 
 class ToyModel(nn.Module):
@@ -36,168 +30,88 @@ class ToyModel(nn.Module):
         x = self.fc3(x)
         return x
 
-class SharedPool(Dataset):
-    def __init__(self):
-        self.nb_samples = 50000
-        c = 3
-        h = w = 32
-        shared_array_base = mp.Array(ctypes.c_float, self.nb_samples*c*h*w)
-        shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-        shared_array = shared_array.reshape(self.nb_samples, c, h, w)
-        self.shared_array = torch.from_numpy(shared_array)
-    
-    def __getitem__(self, index):
-        x = self.shared_array[index]
-        return x, 0
-    
-    def __len__(self):
-        return self.nb_samples
 
-class SharedRedisPool(Dataset):
-    def __init__(self):
-        # prepare redis client
-        redis_host = 'localhost'  # Change this to your Redis server's host
-        redis_port = 6379  # Change this to your Redis server's port
-        self.redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
-        self.nb_samples = int.from_bytes(self.redis_client.get("length"), 'little')
-    
-    def __getitem__(self, index):
-        deser_x = self.redis_client.get("data" + str(index))
-        deser_y = self.redis_client.get("label" + str(index))
-        
-        x = torch.from_numpy(np.frombuffer(deser_x, dtype=np.float32).reshape(3,32,32))
-        y = int.from_bytes(deser_y, 'little')
+class ModelPipeline():
+    def __init__(self, model:torch.nn.Module) -> None:
+        self.model = model
+        self.loss_fn = nn.MSELoss()
+        self.optimizer = optim.SGD(model.parameters(), lr=0.001)
 
-        return x, y
-    
-    def __len__(self):
-        return self.nb_samples
+    def run_train_step(self, inputs:torch.Tensor, labels:torch.Tensor):
+        # zero the parameter gradients
+        self.optimizer.zero_grad()
+        outputs = self.model(inputs)
+        try:
+            loss = self.loss_fn(outputs, labels)
+            loss.backward()
+            self.optimizer.step()
+        except Exception as e:
+            print(outputs, labels)
 
+def get_training_process(strategy_name):
+    if strategy_name == "baseline":
+        return train_process_local_pool
+    elif strategy_name == "shared_local":
+        return train_process_shared_pool_local
+    elif strategy_name == "shared_disaggregated":
+        return train_process_shared_pool_far
+    return None
 
-def train_process(rank, world_size, train_strategy, train_dataset):
-    model = ToyModel()
-    model.to("cuda")
+def get_model(name:str) -> torch.nn.Module:
+    return ToyModel()
+
+def train_process_local_pool(rank, batch_size, epoch_count, dataset_name, model_name):
+    # create the model training pipeline
+    training_pipeline = ModelPipeline(model=get_model(model_name))
     # Define the transformations for data preprocessing
-    transform = torchvision.transforms.Compose([
-        torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
-        torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to mean 0 and standard deviation 1
-    ])
+    dataset_pipeline = DatasetPipeline(LocalPool(dataset_name=dataset_name), batch_size=batch_size)
+    
+    for epoch in range(epoch_count):
+        print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
+        print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
+        for i, data in enumerate(dataset_pipeline):
+            inputs, labels = data
+            # generate label and move to GPU
+            one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
+            # train one iteration
+            training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
 
-    loss_fn = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.001)
+        print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
+        print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
-    if train_strategy is None or train_strategy == "baseline":
-        # Download and load the CIFAR-10 training dataset
-        train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, transform=transform, download=True)
 
-        # Create data loaders for training and test datasets
-        # each process will create its own dataloader to create their own copy
-        batch_size = BATCH_SIZE
-        train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
+def train_process_shared_pool_local(rank, batch_size, epoch_count, dataset_name, model_name):
+    train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 
-        data_list = []
-        label_list = []
+    for epoch in range(epoch_count):
+        print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
+        print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
         for i, data in enumerate(train_loader, 0):
-            data_list.append(data[0])
-            label_list.append(data[1])
-
-        for epoch in range(2):
-            print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
-            print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
-            for i in range(0, len(data_list), batch_size):
-                inputs, labels = data
-                inputs = inputs.cuda()
-                # generate label and move to GPU
-                one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
-                one_hot = one_hot.cuda()
-
-                labels = label_list[i]
-                # zero the parameter gradients
-                optimizer.zero_grad()
-                outputs = model(inputs)
-                try:
-                    loss = loss_fn(outputs, one_hot)
-                    loss.backward()
-                    optimizer.step()
-                except Exception as e:
-                    print(outputs, one_hot)
-            print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
-            print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
-
-    elif train_strategy == "shared":
-        batch_size = BATCH_SIZE
-        train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-
-        for epoch in range(2):
-            print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
-            print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
-            for i, data in enumerate(train_loader, 0):
-                inputs, labels = data
-                inputs = inputs.cuda()
-                # generate label and move to GPU
-                one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
-                one_hot = one_hot.cuda()
-                # zero the parameter gradients
-                optimizer.zero_grad()
-                outputs = model(inputs)
-                try:
-                    loss = loss_fn(outputs, one_hot)
-                    loss.backward()
-                    optimizer.step()
-                except Exception as e:
-                    print(e)
-            print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
-            print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
-
-    elif train_strategy == "sharedpool":
-        batch_size = BATCH_SIZE
-        train_dataset = SharedRedisPool()
-        train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
-
-        for epoch in range(2):
-            print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
-            print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
-            for i, data in enumerate(train_loader, 0):
-                inputs, labels = data
-                inputs = inputs.cuda()
-                # generate label and move to GPU
-                one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
-                one_hot = one_hot.cuda()
-                # zero the parameter gradients
-                optimizer.zero_grad()
-                outputs = model(inputs)
-                
-                try:
-                    loss = loss_fn(outputs, one_hot)
-                    loss.backward()
-                    optimizer.step()
-                except Exception as e:
-                    print(e)
-            print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
-            print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
+            inputs, labels = data
+            input = input.cuda()
+            # generate label and move to GPU
+            one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
+            one_hot = one_hot.cuda()
+            
+        print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
+        print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
 
-    return
+def train_process_shared_pool_far(rank, batch_size, epoch_count, dataset_name, model_name):
+    # create the model training pipeline
+    training_pipeline = ModelPipeline(model=get_model(model_name))
+    # Define the transformations for data preprocessing
+    dataset_pipeline = DatasetPipeline(SharedRedisPool(dataset_name=dataset_name), batch_size=batch_size)
 
-
-if __name__ == "__main__":
-    # number of process 
-    # will be used to create unique id from 0-3
-    num_rank = int(sys.argv[1])
-    strategy = sys.argv[2]
-    # first argument to train_process is its rank
-    # which will be controlled by spawner
-    if strategy == "shared":
-        # Define the transformations for data preprocessing
-        transform = torchvision.transforms.Compose([
-            torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
-            torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to mean 0 and standard deviation 1
-        ])
-        train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, transform=transform, download=True)
-    else:
-        train_dataset = None
-
-    mp.spawn(train_process,
-             args=(1, strategy, train_dataset),
-             nprocs=num_rank,
-             join=True)
+    for epoch in range(epoch_count):
+        print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
+        print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
+        for i, data in enumerate(dataset_pipeline, 0):
+            inputs, labels = data
+            # inputs = inputs.cuda()
+            # generate label and move to GPU
+            one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
+            # one_hot = one_hot.cuda()
+            
+        print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
+        print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
