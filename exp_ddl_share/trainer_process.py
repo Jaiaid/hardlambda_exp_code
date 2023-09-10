@@ -46,21 +46,22 @@ class ModelPipeline():
             loss.backward()
             self.optimizer.step()
         except Exception as e:
-            print(outputs, labels)
+            print(e)
+            exit(0)
 
 def get_training_process(strategy_name):
     if strategy_name == "baseline":
         return train_process_local_pool
-    elif strategy_name == "shared_local":
+    elif strategy_name == "sharedlocal":
         return train_process_shared_pool_local
-    elif strategy_name == "shared_disaggregated":
+    elif strategy_name == "disaggregated":
         return train_process_shared_pool_far
     return None
 
 def get_model(name:str) -> torch.nn.Module:
     return ToyModel()
 
-def train_process_local_pool(rank, batch_size, epoch_count, dataset_name, model_name):
+def train_process_local_pool(rank, batch_size, epoch_count, num_classes, dataset_name, model_name):
     # create the model training pipeline
     training_pipeline = ModelPipeline(model=get_model(model_name))
     # Define the transformations for data preprocessing
@@ -72,7 +73,7 @@ def train_process_local_pool(rank, batch_size, epoch_count, dataset_name, model_
         for i, data in enumerate(dataset_pipeline):
             inputs, labels = data
             # generate label and move to GPU
-            one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
+            one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
             # train one iteration
             training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
 
@@ -80,7 +81,7 @@ def train_process_local_pool(rank, batch_size, epoch_count, dataset_name, model_
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
 
-def train_process_shared_pool_local(rank, batch_size, epoch_count, dataset_name, model_name):
+def train_process_shared_pool_local(rank, batch_size, epoch_count, num_classes, dataset_name, model_name):
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
 
     for epoch in range(epoch_count):
@@ -90,18 +91,18 @@ def train_process_shared_pool_local(rank, batch_size, epoch_count, dataset_name,
             inputs, labels = data
             input = input.cuda()
             # generate label and move to GPU
-            one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
+            one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
             one_hot = one_hot.cuda()
             
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
 
-def train_process_shared_pool_far(rank, batch_size, epoch_count, dataset_name, model_name):
+def train_process_shared_pool_far(rank, batch_size, epoch_count, num_classes, dataset_name, model_name):
     # create the model training pipeline
     training_pipeline = ModelPipeline(model=get_model(model_name))
     # Define the transformations for data preprocessing
-    dataset_pipeline = DatasetPipeline(SharedRedisPool(dataset_name=dataset_name), batch_size=batch_size)
+    dataset_pipeline = DatasetPipeline(SharedRedisPool(), batch_size=batch_size)
 
     for epoch in range(epoch_count):
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
@@ -110,7 +111,7 @@ def train_process_shared_pool_far(rank, batch_size, epoch_count, dataset_name, m
             inputs, labels = data
             # inputs = inputs.cuda()
             # generate label and move to GPU
-            one_hot = torch.nn.functional.one_hot(labels, num_classes=10).float()
+            one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
             # one_hot = one_hot.cuda()
             
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
