@@ -19,14 +19,14 @@ if __name__ == "__main__":
         , default="toy", required=True)
     parser.add_argument("-d", "--dataset", choices=["cifar10", "cifar100"]
         , help="on which dataset to train, select from 'cifar10', 'cifar100'", required=True)
-    parser.add_argument("-s", "--store_strategy", choices=["baseline", "sharedlocal", "disaggregated"]
+    parser.add_argument("-s", "--store_strategy", choices=["baseline", "sharedlocal", "disaggregated", "local_random"]
         , help="on which dataset to train, select from 'baseline', 'shared' or 'sharedpool'", required=True)
     # get arguments
     args = parser.parse_args()
 
     # start training
     torch.multiprocessing.spawn(get_training_process(args.store_strategy),
-        args=(args.batch_size, args.epoch_count, args.num_class, args.dataset, args.model),
+        args=(args.batch_size, args.epoch_count, args.num_class, args.dataset, args.model, args.process_count),
         nprocs=args.process_count,
         join=True
     )
