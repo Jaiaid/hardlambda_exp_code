@@ -21,12 +21,38 @@ if __name__ == "__main__":
         , help="on which dataset to train, select from 'cifar10', 'cifar100'", required=True)
     parser.add_argument("-s", "--store_strategy", choices=["baseline", "sharedlocal", "disaggregated", "local_random"]
         , help="on which dataset to train, select from 'baseline', 'shared' or 'sharedpool'", required=True)
+    parser.add_argument("-ddl", "--distributed", default=False, action="store_true", help="if it will be distributed")
+    # ddl over network iface related parameters
+    parser.add_argument("-id", "--rank", type=int, help="process rank", default=0, required=False)
+    parser.add_argument("-ws", "--world_size", type=int, help="world size", default=2, required=False)
+    parser.add_argument("-ip", "--ip", type=str, help="master ip", default="10.21.12.239", required=False)
+    parser.add_argument("-p", "--port", type=int, help="master port", default=29500, required=False)
+    parser.add_argument("-if", "--iface", type=str, help="network device name", default="eno2", required=False)
+    
     # get arguments
     args = parser.parse_args()
 
+    rank = args.rank
+    os.environ["RANK"] = str(rank)
+    world_size = args.world_size
+    os.environ["WORLD_SIZE"] = str(world_size)
+    ip = args.ip
+    os.environ["MASTER_ADDR"] = str(ip)
+    port = args.port
+    os.environ["MASTER_PORT"] = str(port)
+    iface = args.iface
+    os.environ["GLOO_SOCKET_IFNAME"] = str(iface)
+
     # start training
-    torch.multiprocessing.spawn(get_training_process(args.store_strategy),
-        args=(args.batch_size, args.epoch_count, args.num_class, args.dataset, args.model, args.process_count),
-        nprocs=args.process_count,
-        join=True
-    )
+    if args.distributed:
+        get_training_process(args.store_strategy)(
+            rank=args.rank, batch_size=args.batch_size, epoch_count=args.epoch_count,
+            num_classes=args.num_class, dataset_name=args.dataset, model_name=args.model,
+            num_replicas=args.world_size, ddl=args.distributed
+        )
+    else:
+        torch.multiprocessing.spawn(get_training_process(args.store_strategy),
+            args=(args.batch_size, args.epoch_count, args.num_class, args.dataset, args.model, args.process_count),
+            nprocs=args.process_count,
+            join=True
+        )

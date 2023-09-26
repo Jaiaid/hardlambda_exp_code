@@ -6,8 +6,8 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.multiprocessing as mp
 from torch.utils.data import Dataset, DataLoader
-import torchvision
 import torchvision.transforms
+from torch.nn.parallel import DistributedDataParallel as DDP
 
 from dataset import LocalPool, SharedPool, SharedRedisPool, DatasetPipeline
 
@@ -37,6 +37,9 @@ class ModelPipeline():
         self.model = model
         self.loss_fn = nn.MSELoss()
         self.optimizer = optim.SGD(model.parameters(), lr=0.001)
+
+    def make_distributed(self):
+        self.model = DDP(self.model)
 
     def run_train_step(self, inputs:torch.Tensor, labels:torch.Tensor):
         # zero the parameter gradients
@@ -83,21 +86,24 @@ def train_process_local_pool(rank, batch_size, epoch_count, num_classes, dataset
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
-def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes, dataset_name, model_name, num_replicas=None):
-    ip = "127.0.0.1"
-    os.environ["MASTER_ADDR"] = str(ip)
-    # port = args.port
-    port = 12355
-    os.environ["MASTER_PORT"] = str(port)
-    dist.init_process_group("gloo", rank=rank, world_size=num_replicas)
+def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes, dataset_name, model_name, num_replicas=None, ddl=None):
+    print("creating model pipeline")
     # create the model training pipeline
     training_pipeline = ModelPipeline(model=get_model(model_name))
+    if ddl:
+        print("creating process group")
+        dist.init_process_group("gloo", rank=rank, world_size=num_replicas)
+        print("making model distributed")
+        training_pipeline.make_distributed()
+
+    print("creating data pipeline")
     # Define the transformations for data preprocessing
     dataset_pipeline = DatasetPipeline(LocalPool(dataset_name=dataset_name), batch_size=batch_size, sampler="dist", num_replicas=num_replicas)
     import time
     total_time = 0
     count = 0
     for epoch in range(epoch_count):
+        print("starting training epoch {0}...".format(epoch))
         dataset_pipeline.set_epoch(epoch)
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
