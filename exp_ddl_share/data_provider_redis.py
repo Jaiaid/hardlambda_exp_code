@@ -37,8 +37,7 @@ if __name__=='__main__':
     redis_server_options = "redis.conf"  # Replace with your Redis configuration file if needed
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-conf", "--conf_file", type=str, help="configuration file path", default=redis_server_options
-        , default=16)
+    parser.add_argument("-conf", "--conf_file", type=str, help="configuration file path", default=redis_server_options)
     args = parser.parse_args()
 
     try:
