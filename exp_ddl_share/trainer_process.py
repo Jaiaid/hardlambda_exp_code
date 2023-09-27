@@ -158,7 +158,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
 
     print("creating data pipeline")
     # Define the transformations for data preprocessing
-    dataset_pipeline = DatasetPipeline(SharedDistRedisPool(dataset_name=dataset_name), batch_size=batch_size, sampler="dist", num_replicas=num_replicas)
+    dataset_pipeline = DatasetPipeline(SharedDistRedisPool(), batch_size=batch_size, sampler="dist", num_replicas=num_replicas)
     import time
     total_time = 0
     count = 0
