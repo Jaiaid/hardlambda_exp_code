@@ -27,9 +27,9 @@ if __name__ == "__main__":
     # ddl over network iface related parameters
     parser.add_argument("-id", "--rank", type=int, help="process rank", default=0, required=False)
     parser.add_argument("-ws", "--world_size", type=int, help="world size", default=2, required=False)
-    parser.add_argument("-ip", "--ip", type=str, help="master ip", default="10.21.12.239", required=False)
+    parser.add_argument("-ip", "--ip", type=str, help="master ip", default="127.0.0.1", required=False)
     parser.add_argument("-p", "--port", type=int, help="master port", default=29500, required=False)
-    parser.add_argument("-if", "--iface", type=str, help="network device name", default="eno2", required=False)
+    parser.add_argument("-if", "--iface", type=str, help="network device name", default="lo", required=False)
     
     # get arguments
     args = parser.parse_args()
