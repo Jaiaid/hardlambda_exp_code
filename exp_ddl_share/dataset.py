@@ -84,17 +84,17 @@ class SharedDistRedisPool(Dataset):
         redis_host1 = '129.21.22.239'  # Change this to your Redis server's host
         redis_port1 = 26379  # Change this to your Redis server's port
         self.redis_client1 = redis.StrictRedis(host=redis_host1, port=redis_port1, db=0)
-        self.nb_samples = int.from_bytes(self.redis_client.get("length"), 'little')
+        self.nb_samples = int.from_bytes(self.redis_client1.get("length"), 'little')
 
         redis_host2 = '129.21.22.222'  # Change this to your Redis server's host
         redis_port2 = 26379  # Change this to your Redis server's port
         self.redis_client2 = redis.StrictRedis(host=redis_host2, port=redis_port2, db=0)
-        self.nb_samples = int.from_bytes(self.redis_client.get("length"), 'little')
+        self.nb_samples = int.from_bytes(self.redis_client2.get("length"), 'little')
 
         redis_host3 = '129.21.22.222'  # Change this to your Redis server's host
         redis_port3 = 26380  # Change this to your Redis server's port
         self.redis_client3 = redis.StrictRedis(host=redis_host3, port=redis_port3, db=0)
-        self.nb_samples = int.from_bytes(self.redis_client.get("length"), 'little')
+        self.nb_samples = int.from_bytes(self.redis_client3.get("length"), 'little')
     
     def __getitem__(self, index):
         if index > 2*self.nb_samples/3:
