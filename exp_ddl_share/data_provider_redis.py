@@ -9,7 +9,7 @@ import argparse
 # from torch.utils.data import Dataset, DataLoader
 
 class SharedDataRedis():
-    def __init__(self):
+    def __init__(self, port):
         transform = torchvision.transforms.Compose([
             torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
             torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to mean 0 and standard deviation 1
@@ -18,7 +18,7 @@ class SharedDataRedis():
         self.train_dataset = torchvision.datasets.CIFAR10(root='./data', train=True, transform=transform, download=True)
         # prepare redis client
         redis_host = 'localhost'  # Change this to your Redis server's host
-        redis_port = 6379  # Change this to your Redis server's port
+        redis_port = port  # Change this to your Redis server's port
         self.redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
         
         for i, data in enumerate(self.train_dataset):
@@ -38,6 +38,7 @@ if __name__=='__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument("-conf", "--conf_file", type=str, help="configuration file path", default=redis_server_options)
+    parser.add_argument("-p", "--port", type=str, help="server port", required=True)
     args = parser.parse_args()
 
     try:
@@ -47,7 +48,7 @@ if __name__=='__main__':
 
         # Wait for Redis to start (adjust the sleep duration as needed)
         time.sleep(2)
-        data_pool = SharedDataRedis()
+        data_pool = SharedDataRedis(args.port)
         # sleep idefinitely until keyboard exception
         print("Memory rss footprint of redis process ", (psutil.Process(redis_server_process.pid).memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of redis starter process ", (psutil.Process().memory_info().shared)>>20, "MiB")
