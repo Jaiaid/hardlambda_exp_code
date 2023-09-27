@@ -77,7 +77,44 @@ class SharedRedisPool(Dataset):
     
     def __len__(self):
         return self.nb_samples
+
+class SharedDistRedisPool(Dataset):
+    def __init__(self):
+        # prepare redis client
+        redis_host1 = '129.21.22.239'  # Change this to your Redis server's host
+        redis_port1 = 6379  # Change this to your Redis server's port
+        self.redis_client1 = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
+        self.nb_samples = int.from_bytes(self.redis_client.get("length"), 'little')
+
+        redis_host2 = '129.21.22.222'  # Change this to your Redis server's host
+        redis_port2 = 6379  # Change this to your Redis server's port
+        self.redis_client2 = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
+        self.nb_samples = int.from_bytes(self.redis_client.get("length"), 'little')
+
+        redis_host3 = '129.21.22.222'  # Change this to your Redis server's host
+        redis_port3 = 6380  # Change this to your Redis server's port
+        self.redis_client3 = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
+        self.nb_samples = int.from_bytes(self.redis_client.get("length"), 'little')
     
+    def __getitem__(self, index):
+        if index > 2*self.nb_samples/3:
+            select_redis_client = self.redis_client3
+        elif index > self.nb_samples/3:
+            select_redis_client = self.redis_client2
+        else:
+            select_redis_client = self.redis_client1
+
+        deser_x = select_redis_client.get("data" + str(index))
+        deser_y = select_redis_client.get("label" + str(index))
+        
+        x = torch.from_numpy(np.frombuffer(deser_x, dtype=np.float32).reshape(3,32,32))
+        y = int.from_bytes(deser_y, 'little')
+
+        return x, y
+    
+    def __len__(self):
+        return self.nb_samples
+
 
 class DatasetPipeline():
     def __init__(self, dataset:Dataset, batch_size:int, sampler:str=None, num_replicas:int=None) -> None:

@@ -35,9 +35,14 @@ if __name__=='__main__':
     redis_server_cmd = "redis-server"  # Use the actual path if not in PATH
     redis_server_options = "redis.conf"  # Replace with your Redis configuration file if needed
 
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-conf", "--conf_file", type=str, help="configuration file path", default=redis_server_options
+        , default=16)
+    args = parser.parse_args()
+
     try:
         # Start the Redis server as a subprocess
-        redis_server_process = subprocess.Popen([redis_server_cmd, redis_server_options]
+        redis_server_process = subprocess.Popen([redis_server_cmd, args.conf_file]
         , stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 
         # Wait for Redis to start (adjust the sleep duration as needed)
