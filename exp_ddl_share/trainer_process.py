@@ -122,7 +122,7 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
                 if not gpu:
                     one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
                 else:
-                    one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).cuda(device_idx)
+                    one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).cuda(torch.device('cuda', device_idx))
                 # train one iteration
                 t = time.time()
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
