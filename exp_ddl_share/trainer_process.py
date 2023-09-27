@@ -103,6 +103,8 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
         dist.init_process_group("gloo", rank=rank, world_size=num_replicas)
         print("making model distributed")
         training_pipeline.make_distributed()
+    else:
+        dist.init_process_group("gloo", rank=rank, world_size=num_replicas)
 
     print("creating data pipeline")
     # Define the transformations for data preprocessing
