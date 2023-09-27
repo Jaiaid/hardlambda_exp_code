@@ -38,6 +38,9 @@ class ModelPipeline():
         self.loss_fn = nn.MSELoss()
         self.optimizer = optim.SGD(model.parameters(), lr=0.001)
 
+    def make_gpu(self, device_idx):
+        self.model = self.model.cuda(torch.device('cuda', device_idx))
+
     def make_distributed(self):
         self.model = DDP(self.model)
 
@@ -86,10 +89,15 @@ def train_process_local_pool(rank, batch_size, epoch_count, num_classes, dataset
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
-def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes, dataset_name, model_name, num_replicas=None, ddl=None):
+def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes, dataset_name, model_name, num_replicas=None, ddl=None, gpu=False):
     print("creating model pipeline")
     # create the model training pipeline
     training_pipeline = ModelPipeline(model=get_model(model_name))
+    # to select which gpu to use if multiple gpu
+    device_idx = rank if torch.cuda.device_count()>rank else 0
+
+    if gpu:
+        training_pipeline.make_gpu(device_idx)
     if ddl:
         print("creating process group")
         dist.init_process_group("gloo", rank=rank, world_size=num_replicas)
@@ -111,7 +119,10 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
             for i, data in enumerate(dataset_pipeline):
                 inputs, labels = data
                 # generate label and move to GPU
-                one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
+                if not gpu:
+                    one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
+                else:
+                    one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).cuda(device_idx)
                 # train one iteration
                 t = time.time()
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)

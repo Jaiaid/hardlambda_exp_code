@@ -22,6 +22,8 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--store_strategy", choices=["baseline", "sharedlocal", "disaggregated", "local_random"]
         , help="on which dataset to train, select from 'baseline', 'shared' or 'sharedpool'", required=True)
     parser.add_argument("-ddl", "--distributed", default=False, action="store_true", help="if it will be distributed")
+    parser.add_argument("-gpu", "--gpu", , default=False, action="store_true", help="if it will be distributed")
+
     # ddl over network iface related parameters
     parser.add_argument("-id", "--rank", type=int, help="process rank", default=0, required=False)
     parser.add_argument("-ws", "--world_size", type=int, help="world size", default=2, required=False)
@@ -48,7 +50,7 @@ if __name__ == "__main__":
         get_training_process(args.store_strategy)(
             rank=args.rank, batch_size=args.batch_size, epoch_count=args.epoch_count,
             num_classes=args.num_class, dataset_name=args.dataset, model_name=args.model,
-            num_replicas=args.world_size, ddl=args.distributed
+            num_replicas=args.world_size, ddl=args.distributed, gpu=args.gpu
         )
     else:
         torch.multiprocessing.spawn(get_training_process(args.store_strategy),
