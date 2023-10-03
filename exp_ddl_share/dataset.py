@@ -2,8 +2,10 @@ import numpy as np
 import redis
 import ctypes
 import torch
-from torch.utils.data import Dataset, DataLoader, DistributedSampler
 import torchvision
+from torch.utils.data import Dataset, DataLoader, DistributedSampler
+
+from DistribSampler import CustomDistributedSampler
 
 
 def get_dataset(dataset_name:str):
@@ -120,7 +122,7 @@ class DatasetPipeline():
     def __init__(self, dataset:Dataset, batch_size:int, sampler:str=None, num_replicas:int=None) -> None:
         if sampler == "dist":
             # print("Hi")
-            self.sampler = DistributedSampler(dataset=dataset, num_replicas=num_replicas)
+            self.sampler = CustomDistributedSampler(dataset=dataset, num_replicas=num_replicas)
             self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, sampler=self.sampler)
         else:
             self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)

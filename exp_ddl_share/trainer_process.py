@@ -91,6 +91,7 @@ def train_process_local_pool(rank, batch_size, epoch_count, num_classes, dataset
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
+
 def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes, dataset_name, model_name, num_replicas=None, ddl=None, gpu=False):
     print("creating model pipeline")
     # create the model training pipeline
@@ -110,7 +111,11 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
 
     print("creating data pipeline")
     # Define the transformations for data preprocessing
-    dataset_pipeline = DatasetPipeline(LocalPool(dataset_name=dataset_name), batch_size=batch_size, sampler="dist", num_replicas=num_replicas)
+    dataset = LocalPool(dataset_name=dataset_name)
+    dataset_pipeline = DatasetPipeline(dataset=dataset, batch_size=batch_size, sampler="dist", num_replicas=num_replicas)
+    # to keep track of which data batch reading takes what time
+    batch_read_time = [0] * int(dataset.nb_samples/batch_size + 1)
+
     import time
     total_time = 0
     count = 0
@@ -121,14 +126,18 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
         try:
             for i, data in enumerate(dataset_pipeline):
+                t = time.time()
                 inputs, labels = data
                 # generate label and move to GPU
                 if not gpu:
                     one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
                 else:
                     one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).cuda(torch.device('cuda', device_idx))
+                # record the batch_read time
+                # we are adding with the assumption that all rank's train equal epoch count
+                # therefore, summation of time is indicative of delay
+                batch_read_time[i] += time.time() - t
                 # train one iteration
-                t = time.time()
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
                 count += 1
@@ -138,6 +147,12 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
 
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
+
+    # if rank-0 dump all the data distribution latency and frequency data with rank name in file
+    with open("rank_{0}_read_latency_data.csv".format(rank), "w") as fout:
+        for batch_no, latency in enumerate(batch_read_time):
+            fout.write(str(batch_no) + " " + str(latency) + "\n")
+
 
 def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes, dataset_name, model_name, num_replicas=None, ddl=None, gpu=False):
     print("creating model pipeline")
@@ -158,7 +173,11 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
 
     print("creating data pipeline")
     # Define the transformations for data preprocessing
-    dataset_pipeline = DatasetPipeline(SharedDistRedisPool(), batch_size=batch_size, sampler="dist", num_replicas=num_replicas)
+    dataset = SharedDistRedisPool()
+    dataset_pipeline = DatasetPipeline(dataset=dataset, batch_size=batch_size, sampler="dist", num_replicas=num_replicas)
+    # to keep track of which data batch reading takes what time
+    batch_read_time = [0] * int(dataset.nb_samples/batch_size + 1)
+
     import time
     total_time = 0
     count = 0
@@ -169,14 +188,18 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
         try:
             for i, data in enumerate(dataset_pipeline):
+                t = time.time()
                 inputs, labels = data
                 # generate label and move to GPU
                 if not gpu:
                     one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
                 else:
                     one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).cuda(torch.device('cuda', device_idx))
+                # record the batch_read time
+                # we are adding with the assumption that all rank's train equal epoch count
+                # therefore, summation of time is indicative of delay
+                batch_read_time[i] += time.time() - t
                 # train one iteration
-                t = time.time()
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
                 count += 1
@@ -186,6 +209,11 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
 
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
+    
+    # if rank-0 dump all the data distribution latency and frequency data with rank name in file
+    with open("rank_{0}_read_latency_data.csv", "w") as fout:
+        for batch_no, latency in enumerate(batch_read_time):
+            fout.write(str(batch_no) + " " + str(latency) + "\n")
 
 
 def train_process_shared_pool_local(rank, batch_size, epoch_count, num_classes, dataset_name, model_name):
