@@ -132,3 +132,6 @@ class DatasetPipeline():
 
     def __iter__(self):
         return self.dataloader._get_iterator()
+    
+    def dump_data_read_freq(self, output_file_path:str):
+        self.sampler.dump_data_read_freq(output_file_path=output_file_path)

@@ -63,8 +63,8 @@ class CustomDistributedSampler(DistributedSampler):
                  seed: int = 0, drop_last: bool = False, batch_size: int = 16) -> None:
         super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
         self.batch_size = batch_size
-        self.data_batch_read_latency = [0] * int(self.num_samples/self.batch_size + 1)
-        self.data_batch_read_freq = [0] * int(self.num_samples/self.batch_size + 1)
+        self.data_batch_read_latency = [0] * int(self.num_samples*num_replicas/self.batch_size + 1)
+        self.data_batch_read_freq = [0] * int(self.num_samples*num_replicas/self.batch_size + 1)
 
     def __iter__(self) -> Iterator[T_co]:
         print(self.num_samples)
@@ -94,7 +94,7 @@ class CustomDistributedSampler(DistributedSampler):
         # record the data's access frequency
         # still not read but we are passing the indices so it should be read
         for index in indices:
-            batch_no = int(min(indices)/self.batch_size)
+            batch_no = int(index/self.batch_size)
             self.data_batch_read_freq[batch_no] += 1
 
         return iter(indices)

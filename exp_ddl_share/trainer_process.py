@@ -149,9 +149,13 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
     # if rank-0 dump all the data distribution latency and frequency data with rank name in file
-    with open("rank_{0}_read_latency_data.csv".format(rank), "w") as fout:
+    with open("latency_data_rank_{0}.csv".format(rank), "w") as fout:
         for batch_no, latency in enumerate(batch_read_time):
             fout.write(str(batch_no) + " " + str(latency) + "\n")
+    
+    # dump data read freq, only rank 0 will init that
+    if rank == 0:
+        dataset_pipeline.dump_data_read_freq("freq_data.csv")
 
 
 def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes, dataset_name, model_name, num_replicas=None, ddl=None, gpu=False):
