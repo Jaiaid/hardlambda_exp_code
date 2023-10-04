@@ -129,10 +129,10 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
                 t = time.time()
                 inputs, labels = data
                 # generate label and move to GPU
-                if not gpu:
-                    one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
-                else:
-                    one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).cuda(torch.device('cuda', device_idx))
+                one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
+                if gpu:
+                    inputs = inputs.cuda(torch.device('cuda', device_idx))
+                    one_hot = one_hot.cuda(torch.device('cuda', device_idx))
                 # record the batch_read time
                 # we are adding with the assumption that all rank's train equal epoch count
                 # therefore, summation of time is indicative of delay
@@ -195,11 +195,10 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 t = time.time()
                 inputs, labels = data
                 # generate label and move to GPU
-                if not gpu:
-                    one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
-                else:
+                one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
+                if gpu:
                     inputs = inputs.cuda(torch.device('cuda', device_idx))
-                    one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).cuda(torch.device('cuda', device_idx))
+                    one_hot = one_hot.cuda(torch.device('cuda', device_idx))
                 # record the batch_read time
                 # we are adding with the assumption that all rank's train equal epoch count
                 # therefore, summation of time is indicative of delay
