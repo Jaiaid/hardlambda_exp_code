@@ -219,6 +219,10 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         for batch_no, latency in enumerate(batch_read_time):
             fout.write(str(batch_no) + " " + str(latency) + "\n")
 
+    # dump data read freq, only rank 0 will init that
+    if rank == 0:
+        dataset_pipeline.dump_data_read_freq("freq_data.csv")
+
 
 def train_process_shared_pool_local(rank, batch_size, epoch_count, num_classes, dataset_name, model_name):
     train_loader = torch.utils.data.DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True)
