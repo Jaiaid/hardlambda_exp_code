@@ -147,15 +147,14 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
 
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
+        
+        with open("latency_data_rank_{0}.csv".format(rank), "a") as fout:
+            for batch_no, latency in enumerate(batch_read_time):
+                fout.write(str(epoch) + " " + str(batch_no) + " " + str(latency) + "\n")
+                batch_read_time[batch_no] = 0
 
-    # if rank-0 dump all the data distribution latency and frequency data with rank name in file
-    with open("latency_data_rank_{0}.csv".format(rank), "w") as fout:
-        for batch_no, latency in enumerate(batch_read_time):
-            fout.write(str(batch_no) + " " + str(latency) + "\n")
-    
     # dump data read freq, only rank 0 will init that
-    if rank == 0:
-        dataset_pipeline.dump_data_read_freq("freq_data.csv")
+    dataset_pipeline.dump_data_read_freq("freq_data_rank_{0}.csv".format(rank))
 
 
 def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes, dataset_name, model_name, num_replicas=None, ddl=None, gpu=False):
@@ -185,6 +184,10 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     import time
     total_time = 0
     count = 0
+    # to clean existing file
+    fout = open("latency_data_rank_{0}.csv".format(rank), "w")
+    fout.close()
+
     for epoch in range(epoch_count):
         print("starting training epoch {0}...".format(epoch))
         dataset_pipeline.set_epoch(epoch)
@@ -214,9 +217,9 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
         
-        with open("latency_data_rank_{0}_epoch_{1}.csv".format(rank, epoch), "w") as fout:
+        with open("latency_data_rank_{0}.csv".format(rank), "a") as fout:
             for batch_no, latency in enumerate(batch_read_time):
-                fout.write(str(batch_no) + " " + str(latency) + "\n")
+                fout.write(str(epoch) + " " + str(batch_no) + " " + str(latency) + "\n")
                 batch_read_time[batch_no] = 0
 
     # dump data read freq, only rank 0 will init that
