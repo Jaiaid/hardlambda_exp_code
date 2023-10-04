@@ -119,6 +119,11 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
     import time
     total_time = 0
     count = 0
+    # to clean existing file
+    fout = open("latency_data_rank_{0}.csv".format(rank), "w")
+    fout.write("epoch,batch,batch size,read time (s),")
+    fout.close()
+
     for epoch in range(epoch_count):
         print("starting training epoch {0}...".format(epoch))
         dataset_pipeline.set_epoch(epoch)
@@ -150,7 +155,7 @@ def train_process_local_pool_distrib_shuffle(rank, batch_size, epoch_count, num_
         
         with open("latency_data_rank_{0}.csv".format(rank), "a") as fout:
             for batch_no, latency in enumerate(batch_read_time):
-                fout.write(str(epoch) + " " + str(batch_no) + " " + str(latency) + "\n")
+                fout.write(str(epoch) + "," + str(batch_no) + "," + str(batch_size) + "," + str(latency) + "\n")
                 batch_read_time[batch_no] = 0
 
     # dump data read freq, only rank 0 will init that
@@ -186,6 +191,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     count = 0
     # to clean existing file
     fout = open("latency_data_rank_{0}.csv".format(rank), "w")
+    fout.write("epoch,batch,batch size,read time (s)\n")
     fout.close()
 
     for epoch in range(epoch_count):
@@ -219,7 +225,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         
         with open("latency_data_rank_{0}.csv".format(rank), "a") as fout:
             for batch_no, latency in enumerate(batch_read_time):
-                fout.write(str(epoch) + " " + str(batch_no) + " " + str(latency) + "\n")
+                fout.write(str(epoch) + "," + str(batch_no) + "," + str(batch_size) + "," + str(latency) + "\n")
                 batch_read_time[batch_no] = 0
 
     # dump data read freq, only rank 0 will init that
