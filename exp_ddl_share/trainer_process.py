@@ -198,6 +198,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 if not gpu:
                     one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
                 else:
+                    inputs = inputs.cuda(torch.device('cuda', device_idx))
                     one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).cuda(torch.device('cuda', device_idx))
                 # record the batch_read time
                 # we are adding with the assumption that all rank's train equal epoch count
