@@ -34,9 +34,11 @@ class DistAwareDistributedSampler(DistributedSampler):
         for i in range(0, len(dataset), batch_size):
             t = time.time()
             # we are only checking how much time to read from memory
-            input = dataset[i:i+batch_size]
-            total_read_time = time.time() - t
+            for j in range(i, i+batch_size):
+                input = dataset[i]
+                total_read_time += time.time() - t
             time_list.append(total_read_time)
+            total_read_time = 0
 
         self.batch_dist_ranking_list = numpy.argsort()
 
