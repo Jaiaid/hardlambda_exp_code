@@ -222,7 +222,6 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 # we are adding with the assumption that all rank's train equal epoch count
                 # therefore, summation of time is indicative of delay
                 batch_read_time[i] += time.time() - t
-                data_sampler.update_batch_time(batch_no=i, read_time=batch_read_time[i])
                 # train one iteration
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
