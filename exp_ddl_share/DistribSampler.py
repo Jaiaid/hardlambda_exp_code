@@ -30,6 +30,7 @@ class DistAwareDistributedSampler(DistributedSampler):
         # self.rank_cache = redis.StrictRedis(host=metadata_cache_ip, port=metadata_cache_port, db=0)
 
         # read the whole dataset and make a ranking
+        benchmarking_time_start = time.time()
         time_list = []
         total_read_time = 0
         for i in range(0, len(dataset), batch_size):
@@ -40,8 +41,10 @@ class DistAwareDistributedSampler(DistributedSampler):
                 total_read_time += time.time() - t
             time_list.append(total_read_time)
             total_read_time = 0
-
+        
         self.batch_dist_ranking_list = list(numpy.argsort(time_list))
+        benchmarking_time_end = time.time()
+        print("benchmarking took {0}s".format(benchmarking_time_end - benchmarking_time_start))
 
     def __iter__(self) -> Iterator[T_co]:
         total_batch = len(self.batch_dist_ranking_list)
