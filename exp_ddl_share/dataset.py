@@ -5,8 +5,6 @@ import torch
 import torchvision
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
 
-from DistribSampler import CustomDistributedSampler
-
 
 def get_dataset(dataset_name:str):
     if dataset_name == "cifar10":
