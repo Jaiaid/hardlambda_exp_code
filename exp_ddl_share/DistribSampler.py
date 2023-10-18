@@ -31,6 +31,7 @@ class DistAwareDistributedSampler(DistributedSampler):
 
         # read the whole dataset and make a ranking
         time_list = []
+        total_read_time = 0
         for i in range(0, len(dataset), batch_size):
             t = time.time()
             # we are only checking how much time to read from memory
