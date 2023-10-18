@@ -1,2 +1,9 @@
 **/data
 **/*.rdb
+**/*.txt
+**/*.sardata
+**/*.png
+**/*.csv
+**/__pycache__
+**/cpython
+**/venv

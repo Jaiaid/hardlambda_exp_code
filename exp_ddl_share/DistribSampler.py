@@ -1,70 +1,16 @@
 import math
 from typing import TypeVar, Optional, Iterator
 
+import numpy
 import torch
 import torch.distributed as dist
 from torch.utils.data import Dataset
+import redis
+import time
 
 T_co = TypeVar('T_co', covariant=True)
 
 from torch.utils.data.distributed import DistributedSampler
-
-class CustomDistributedSampler(DistributedSampler):
-    r"""Sampler that restricts data loading to a subset of the dataset.
-
-    """
-
-    def __init__(self, dataset: Dataset, num_replicas: Optional[int] = None,
-                 rank: Optional[int] = None, shuffle: bool = True,
-                 seed: int = 0, drop_last: bool = False, batch_size: int = 16) -> None:
-        super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
-        self.batch_size = batch_size
-        self.data_batch_read_latency = [0] * int(self.num_samples*num_replicas/self.batch_size + 1)
-        self.data_batch_read_freq = [0] * int(self.num_samples*num_replicas/self.batch_size + 1)
-
-    def __iter__(self) -> Iterator[T_co]:
-        print(self.num_samples)
-        if self.shuffle:
-            # deterministically shuffle based on epoch and seed
-            g = torch.Generator()
-            g.manual_seed(self.seed + self.epoch)
-            indices = torch.randperm(len(self.dataset), generator=g).tolist()  # type: ignore[arg-type]
-        else:
-            indices = list(range(len(self.dataset)))  # type: ignore[arg-type]
-        if not self.drop_last:
-            # add extra samples to make it evenly divisible
-            padding_size = self.total_size - len(indices)
-            if padding_size <= len(indices):
-                indices += indices[:padding_size]
-            else:
-                indices += (indices * math.ceil(padding_size / len(indices)))[:padding_size]
-        else:
-            # remove tail of data to make it evenly divisible.
-            indices = indices[:self.total_size]
-        assert len(indices) == self.total_size
-
-        # subsample
-        indices = indices[self.rank:self.total_size:self.num_replicas]
-        assert len(indices) == self.num_samples
-
-        # record the data's access frequency
-        # still not read but we are passing the indices so it should be read
-        for index in indices:
-            batch_no = int(index/self.batch_size)
-            self.data_batch_read_freq[batch_no] += 1
-
-        return iter(indices)
-
-    def dump_data_read_freq(self, output_file_path):
-        r"""dump the data access freuqncy in text to given output file path
-        
-        Args:
-            output_file_path: output file where the data will be dumped
-        """
-        with open(output_file_path, "w") as fout:
-            fout.write("batch,frequency\n")
-            for batch_no, read_freq in enumerate(self.data_batch_read_freq):
-                fout.write(str(batch_no) + "," + str(read_freq) + "\n")
 
 
 class DistAwareDistributedSampler(DistributedSampler):
@@ -75,35 +21,42 @@ class DistAwareDistributedSampler(DistributedSampler):
 
     def __init__(self, dataset: Dataset, num_replicas: Optional[int] = None,
                  rank: Optional[int] = None, shuffle: bool = True,
-                 seed: int = 0, drop_last: bool = False, batch_size: int = 16) -> None:
+                 seed: int = 0, drop_last: bool = False, batch_size: int = 16,
+                 metadata_cache_ip="0.0.0.0", metadata_cache_port=26379) -> None:
         super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
         self.batch_size = batch_size
         self.data_batch_read_latency = [0] * int(self.num_samples*num_replicas)
         self.data_batch_read_freq = [0] * int(self.num_samples*num_replicas)
+        # self.rank_cache = redis.StrictRedis(host=metadata_cache_ip, port=metadata_cache_port, db=0)
+
+        # read the whole dataset and make a ranking
+        time_list = []
+        for i in range(0, len(dataset), batch_size):
+            t = time.time()
+            # we are only checking how much time to read from memory
+            input = dataset[i:i+batch_size]
+            total_read_time = time.time() - t
+            time_list.append(total_read_time)
+
+        self.batch_dist_ranking_list = numpy.argsort()
 
     def __iter__(self) -> Iterator[T_co]:
-        if self.shuffle:
-            # deterministically shuffle based on epoch and seed
-            g = torch.Generator()
-            g.manual_seed(self.seed + self.epoch)
-            indices = torch.randperm(len(self.dataset), generator=g).tolist()  # type: ignore[arg-type]
-        else:
-            indices = list(range(len(self.dataset)))  # type: ignore[arg-type]
-        if not self.drop_last:
-            # add extra samples to make it evenly divisible
-            padding_size = self.total_size - len(indices)
-            if padding_size <= len(indices):
-                indices += indices[:padding_size]
-            else:
-                indices += (indices * math.ceil(padding_size / len(indices)))[:padding_size]
-        else:
-            # remove tail of data to make it evenly divisible.
-            indices = indices[:self.total_size]
-        assert len(indices) == self.total_size
+        total_batch = len(self.batch_dist_ranking_list)
+        num_batch_per_replica = int(self.total_size / (self.num_replicas * self.batch_size))
+        start_idx = (self.epoch * num_batch_per_replica) % total_batch
+        # we are not modding this for batch generation logic simplification
+        end_idx = (start_idx + num_batch_per_replica)
 
-        # subsample
-        indices = indices[self.rank:self.total_size:self.num_replicas]
-        assert len(indices) == self.num_samples
+        # create indices array
+        indices = []
+        for i in range(start_idx, end_idx):
+            idx = i % total_batch
+            indices += list(
+                range(
+                    self.batch_dist_ranking_list[idx] * self.batch_size,
+                    self.batch_dist_ranking_list[idx] * self.batch_size + self.batch_size
+                )
+            )
 
         # record the data's access frequency
         # still not read but we are passing the indices so it should be read
@@ -112,6 +65,15 @@ class DistAwareDistributedSampler(DistributedSampler):
             self.data_batch_read_freq[batch_no] += 1
 
         return iter(indices)
+
+    def update_batch_time(self, batch_no:int, read_time:float):
+        key = self.rank*self.num_replicas + batch_no
+        self.rank_cache.set(str(key), read_time.to_bytes(4, "little"))
+
+    def get_batch_time(self, batch_no:int) -> float:
+        key = self.rank*self.num_replicas + batch_no
+        deser =  self.rank_cache.get(str(key))
+        return float.from_bytes(deser, "little")
 
     def dump_data_read_freq(self, output_file_path):
         r"""dump the data access freuqncy in text to given output file path

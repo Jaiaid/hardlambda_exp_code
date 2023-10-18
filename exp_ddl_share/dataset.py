@@ -120,8 +120,7 @@ class SharedDistRedisPool(Dataset):
 
 class DatasetPipeline():
     def __init__(self, dataset:Dataset, batch_size:int, sampler:str=None, num_replicas:int=None) -> None:
-        if sampler == "dist":
-            self.sampler = CustomDistributedSampler(dataset=dataset, num_replicas=num_replicas)
+        if sampler is not None:
             self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, sampler=self.sampler)
         else:
             self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
