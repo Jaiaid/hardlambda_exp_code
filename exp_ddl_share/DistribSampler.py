@@ -41,7 +41,7 @@ class DistAwareDistributedSampler(DistributedSampler):
             time_list.append(total_read_time)
             total_read_time = 0
 
-        self.batch_dist_ranking_list = numpy.argsort()
+        self.batch_dist_ranking_list = list(numpy.argsort(time_list))
 
     def __iter__(self) -> Iterator[T_co]:
         total_batch = len(self.batch_dist_ranking_list)
