@@ -74,8 +74,9 @@ class SharedDistRedisPool(Dataset):
 
         deser_x = select_redis_client.get("data" + str(index))
         deser_y = select_redis_client.get("label" + str(index))
-        
-        x = torch.from_numpy(np.frombuffer(deser_x, dtype=np.float32).reshape(3,32,32))
+        x = np.frombuffer(deser_x, dtype=np.float32)
+        dim_x = int(math.sqrt(x.shape[0]/3))
+        x = torch.from_numpy(x.reshape(3,dim_x,dim_x))
         y = int.from_bytes(deser_y, 'little')
 
         return x, y
