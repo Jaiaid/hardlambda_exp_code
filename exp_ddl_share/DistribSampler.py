@@ -1,11 +1,8 @@
-import math
 from typing import TypeVar, Optional, Iterator
-
+import copy
 import numpy
-import torch
 import torch.distributed as dist
 from torch.utils.data import Dataset
-import redis
 import time
 
 T_co = TypeVar('T_co', covariant=True)
@@ -28,10 +25,11 @@ class DefaultDistributedSampler(DistributedSampler):
 
     def __iter__(self) -> Iterator[T_co]:
         iterator = super().__iter__()
+        iter_copy = copy.deepcopy(iterator)
         for index in iterator:
             batch_no = int(index/self.batch_size)
             self.data_batch_read_freq[batch_no] += 1
-        return iterator
+        return iter_copy
 
     def dump_data_read_freq(self, output_file_path):
         r"""dump the data access freuqncy in text to given output file path
