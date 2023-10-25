@@ -97,8 +97,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                                        metadata_cache_ip="0.0.0.0", metadata_cache_port=26379):
     print("creating model pipeline")
     # create the model training pipeline
-    training_pipeline = ModelPipeline(model=get_model(model_name, num_classes=num_classes),
-                                      num_classes=num_classes)
+    training_pipeline = ModelPipeline(model=get_model(model_name, num_classes=num_classes))
     # to select which gpu to use if multiple gpu
     device_idx = rank if torch.cuda.device_count()>rank else 0
 
