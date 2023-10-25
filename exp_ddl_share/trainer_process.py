@@ -72,24 +72,24 @@ def get_model(name:str, num_classes:int) -> torch.nn.Module:
         return model
     return ToyModel()
 
-def train_process_local_pool(rank, batch_size, epoch_count, num_classes, dataset_name, model_name):
-    # create the model training pipeline
-    training_pipeline = ModelPipeline(model=get_model(model_name))
-    # Define the transformations for data preprocessing
-    dataset_pipeline = DatasetPipeline(LocalPool(dataset_name=dataset_name), batch_size=batch_size)
+# def train_process_local_pool(rank, batch_size, epoch_count, num_classes, dataset_name, model_name):
+#     # create the model training pipeline
+#     training_pipeline = ModelPipeline(model=get_model(model_name))
+#     # Define the transformations for data preprocessing
+#     dataset_pipeline = DatasetPipeline(LocalPool(dataset_name=dataset_name), batch_size=batch_size)
     
-    for epoch in range(epoch_count):
-        print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
-        print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
-        for i, data in enumerate(dataset_pipeline):
-            inputs, labels = data
-            # generate label and move to GPU
-            one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
-            # train one iteration
-            training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
+#     for epoch in range(epoch_count):
+#         print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
+#         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
+#         for i, data in enumerate(dataset_pipeline):
+#             inputs, labels = data
+#             # generate label and move to GPU
+#             one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
+#             # train one iteration
+#             training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
 
-        print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
-        print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
+#         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
+#         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
 
 
 def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes,
@@ -97,7 +97,8 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                                        metadata_cache_ip="0.0.0.0", metadata_cache_port=26379):
     print("creating model pipeline")
     # create the model training pipeline
-    training_pipeline = ModelPipeline(model=get_model(model_name), num_classes=num_classes)
+    training_pipeline = ModelPipeline(model=get_model(model_name, num_classes=num_classes),
+                                      num_classes=num_classes)
     # to select which gpu to use if multiple gpu
     device_idx = rank if torch.cuda.device_count()>rank else 0
 
