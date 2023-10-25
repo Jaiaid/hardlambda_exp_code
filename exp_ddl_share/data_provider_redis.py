@@ -30,7 +30,7 @@ class SharedDataRedis():
                 torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to mean 0 and standard deviation 1
             ])
 
-            self.train_dataset = torchvision.datasets.ImageNet(root=dataroot, train=True, transform=transform, download=True)
+            self.train_dataset = torchvision.datasets.ImageNet(root=dataroot, transform=transform)
 
         # prepare redis client
         redis_host = 'localhost'  # Change this to your Redis server's host
