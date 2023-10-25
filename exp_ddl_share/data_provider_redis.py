@@ -42,6 +42,10 @@ class SharedDataRedis():
                 break
             # Serialize the tensor to binary
             input, label= data
+            if dataset == "imagenet":
+                input = torch.nn.functional.interpolate(
+                    input, size=(224, 224), mode='bilinear', align_corners=False
+                )
             serialized_input_tensor = input.numpy().tobytes()
             redis_key = str(i) 
             self.redis_client.set("data" + redis_key, serialized_input_tensor)
