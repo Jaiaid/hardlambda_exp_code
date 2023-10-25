@@ -60,7 +60,7 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-conf", "--conf_file", type=str, help="configuration file path", default=redis_server_options)
     parser.add_argument("-p", "--port", type=str, help="server port", required=True)
-    parser.add_argument("-data", "--dataset", , choices=["cifar10", "cifar100", "imagenet"], help="which dataset to use", default="cifar10")
+    parser.add_argument("-data", "--dataset", choices=["cifar10", "cifar100", "imagenet"], help="which dataset to use", default="cifar10")
     parser.add_argument("-root", "--dataset-root", type=str, help="where dataset is", default="./data")
     args = parser.parse_args()
 
