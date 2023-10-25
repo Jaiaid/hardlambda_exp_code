@@ -24,40 +24,6 @@ def get_dataset(dataset_name:str):
         return torchvision.datasets.CIFAR100(root="./data", download=True, transform=transform)
 
 
-class LocalPool(Dataset):
-    def __init__(self, dataset_name):
-        self.dataset = get_dataset(dataset_name=dataset_name)
-        self.nb_samples = len(self.dataset)
-        # cache it in memory by creating list
-        self.data_list = []
-        self.label_list = []
-        for i, data in enumerate(self.dataset, 0):
-            self.data_list.append(data[0])
-            self.label_list.append(data[1])
-
-    def __getitem__(self, index):
-        return self.data_list[index], self.label_list[index]
-    
-    def __len__(self):
-        return self.nb_samples
-
-class SharedPool(Dataset):
-    def __init__(self, dataset_name):
-        self.nb_samples = 50000
-        c = 3
-        h = w = 32
-        shared_array_base = torch.multiprocessing.Array(ctypes.c_float, self.nb_samples*c*h*w)
-        shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-        shared_array = shared_array.reshape(self.nb_samples, c, h, w)
-        self.shared_array = torch.from_numpy(shared_array)
-    
-    def __getitem__(self, index):
-        x = self.shared_array[index]
-        return x, 0
-    
-    def __len__(self):
-        return self.nb_samples
-
 class SharedRedisPool(Dataset):
     def __init__(self):
         # prepare redis client
