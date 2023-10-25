@@ -9,6 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+from torchvision.models import resnet18
 from dataset import LocalPool, SharedPool, SharedRedisPool, SharedDistRedisPool, DatasetPipeline
 from DistribSampler import DistAwareDistributedSampler
 
@@ -64,7 +65,11 @@ def get_training_process(strategy_name):
         return train_process_pool_distrib_shuffle
     return None
 
-def get_model(name:str) -> torch.nn.Module:
+def get_model(name:str, num_classes:int) -> torch.nn.Module:
+    if name=="resnet18":
+        model = resnet18()
+        model.fc = nn.Linear(512, num_classes) 
+        return model
     return ToyModel()
 
 def train_process_local_pool(rank, batch_size, epoch_count, num_classes, dataset_name, model_name):
@@ -92,7 +97,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                                        metadata_cache_ip="0.0.0.0", metadata_cache_port=26379):
     print("creating model pipeline")
     # create the model training pipeline
-    training_pipeline = ModelPipeline(model=get_model(model_name))
+    training_pipeline = ModelPipeline(model=get_model(model_name), num_classes=num_classes)
     # to select which gpu to use if multiple gpu
     device_idx = rank if torch.cuda.device_count()>rank else 0
 

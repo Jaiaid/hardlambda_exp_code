@@ -15,7 +15,7 @@ if __name__ == "__main__":
     parser.add_argument("-nc", "--num_class", type=int, help="how many class in dataset", required=True)
     parser.add_argument("-n", "--process_count", type=int
         , help="number of process in multi process training, default 1", default=1)
-    parser.add_argument("-m", "--model", choices=["toy"], help="which model to train, select"
+    parser.add_argument("-m", "--model", choices=["toy", "resnet18"], help="which model to train, select"
         , default="toy", required=True)
     parser.add_argument("-d", "--dataset", choices=["cifar10", "cifar100", "imagenet"]
         , help="on which dataset to train, select from 'cifar10', 'cifar100'", required=True)
@@ -44,6 +44,10 @@ if __name__ == "__main__":
     os.environ["MASTER_PORT"] = str(port)
     iface = args.iface
     os.environ["GLOO_SOCKET_IFNAME"] = str(iface)
+
+    # for iamgenet stop-gap measure
+    if args.dataset == "imagenet":
+        args.num_class = 1000
 
     # start training
     if args.distributed:
