@@ -10,7 +10,7 @@ import torchvision.transforms
 from torch.nn.parallel import DistributedDataParallel as DDP
 
 from torchvision.models import resnet18
-from dataset import LocalPool, SharedPool, SharedRedisPool, SharedDistRedisPool, DatasetPipeline
+from dataset import SharedRedisPool, SharedDistRedisPool, DatasetPipeline
 from DistribSampler import DistAwareDistributedSampler
 
 
