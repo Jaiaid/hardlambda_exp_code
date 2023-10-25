@@ -44,7 +44,7 @@ class SharedDataRedis():
             input, label= data
             if dataset == "imagenet":
                 input = torch.nn.functional.interpolate(
-                    input, size=(224, 224), mode='bilinear', align_corners=False
+                    input, size=(3, 224, 224), mode='bilinear', align_corners=False
                 )
             serialized_input_tensor = input.numpy().tobytes()
             redis_key = str(i) 
