@@ -38,7 +38,7 @@ class SharedDataRedis():
         self.redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
         
         for i, data in enumerate(self.train_dataset):
-            if dataset == "imagenet" and i > 50000:
+            if dataset == "imagenet" and i > 400000:
                 break
             # Serialize the tensor to binary
             input, label= data
@@ -48,7 +48,7 @@ class SharedDataRedis():
             self.redis_client.set("label" + redis_key, label.to_bytes(4, 'little'))
         # store length
         if dataset == "imagenet":
-            self.redis_client.set("length", int(50000).to_bytes(4, 'little'))
+            self.redis_client.set("length", int(400000).to_bytes(4, 'little'))
         else:
             self.redis_client.set("length", len(self.train_dataset).to_bytes(4, 'little'))
 
