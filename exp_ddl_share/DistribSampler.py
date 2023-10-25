@@ -31,6 +31,7 @@ class DefaultDistributedSampler(DistributedSampler):
         for index in iterator:
             batch_no = int(index/self.batch_size)
             self.data_batch_read_freq[batch_no] += 1
+        return iterator
 
     def dump_data_read_freq(self, output_file_path):
         r"""dump the data access freuqncy in text to given output file path
