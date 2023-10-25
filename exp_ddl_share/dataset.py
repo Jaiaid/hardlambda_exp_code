@@ -66,8 +66,10 @@ class SharedDistRedisPool(Dataset):
     
     def __getitem__(self, index):
         if index > 2*self.nb_samples/3:
+            index -= int(2*self.nb_samples/3)
             select_redis_client = self.redis_client3
         elif index > self.nb_samples/3:
+            index -= int(self.nb_samples/3)
             select_redis_client = self.redis_client2
         else:
             select_redis_client = self.redis_client1
