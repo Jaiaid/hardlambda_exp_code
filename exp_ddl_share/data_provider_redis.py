@@ -44,6 +44,7 @@ class SharedDataRedis():
             input, label= data
             if dataset == "imagenet":
                 shape = [1] + list(input.shape)
+                print(torch.reshape(input, tuple(shape)).shape)
                 input = torch.nn.functional.interpolate(
                     torch.reshape(input, tuple(shape)), size=(3, 224, 224), mode='bilinear', align_corners=False
                 )
