@@ -17,7 +17,7 @@ if __name__ == "__main__":
         , help="number of process in multi process training, default 1", default=1)
     parser.add_argument("-m", "--model", choices=["toy"], help="which model to train, select"
         , default="toy", required=True)
-    parser.add_argument("-d", "--dataset", choices=["cifar10", "cifar100"]
+    parser.add_argument("-d", "--dataset", choices=["cifar10", "cifar100", "imagenet"]
         , help="on which dataset to train, select from 'cifar10', 'cifar100'", required=True)
     parser.add_argument("-s", "--store_strategy", choices=["baseline", "sharedlocal", "disaggregated", "local_random", "distributed_random"]
         , help="on which dataset to train, select from 'baseline', 'shared' or 'sharedpool'", required=True)
