@@ -43,6 +43,7 @@ class SharedDataRedis():
             # Serialize the tensor to binary
             input, label= data
             if dataset == "imagenet":
+                print(input.shape)
                 input = torch.nn.functional.interpolate(
                     input, size=(3, 224, 224), mode='bilinear', align_corners=False
                 )
