@@ -27,7 +27,7 @@ class DefaultDistributedSampler(DistributedSampler):
         self.data_batch_read_freq = [0] * int(self.num_samples*num_replicas)
 
     def __iter__(self) -> Iterator[T_co]:
-        iterator = super.__iter__()
+        iterator = super().__iter__()
         for index in iterator:
             batch_no = int(index/self.batch_size)
             self.data_batch_read_freq[batch_no] += 1
