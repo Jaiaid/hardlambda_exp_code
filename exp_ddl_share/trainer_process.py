@@ -11,7 +11,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from torchvision.models import resnet18
 from dataset import SharedRedisPool, SharedDistRedisPool, DatasetPipeline
-from DistribSampler import DistAwareDistributedSampler
+from DistribSampler import DistAwareDistributedSampler, DefaultDistributedSampler
 
 
 class ToyModel(nn.Module):
@@ -72,29 +72,10 @@ def get_model(name:str, num_classes:int) -> torch.nn.Module:
         return model
     return ToyModel()
 
-# def train_process_local_pool(rank, batch_size, epoch_count, num_classes, dataset_name, model_name):
-#     # create the model training pipeline
-#     training_pipeline = ModelPipeline(model=get_model(model_name))
-#     # Define the transformations for data preprocessing
-#     dataset_pipeline = DatasetPipeline(LocalPool(dataset_name=dataset_name), batch_size=batch_size)
-    
-#     for epoch in range(epoch_count):
-#         print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
-#         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
-#         for i, data in enumerate(dataset_pipeline):
-#             inputs, labels = data
-#             # generate label and move to GPU
-#             one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
-#             # train one iteration
-#             training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
-
-#         print("Memory rss footprint of process ", rank, " at epoch", epoch, " end ", (psutil.Process().memory_info().rss)>>20, "MiB")
-#         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
-
 
 def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes,
                                        dataset_name, model_name, num_replicas=None, ddl=None, gpu=False,
-                                       metadata_cache_ip="0.0.0.0", metadata_cache_port=26379):
+                                       sampler=None):
     print("creating model pipeline")
     # create the model training pipeline
     training_pipeline = ModelPipeline(model=get_model(model_name, num_classes=num_classes))
@@ -114,10 +95,15 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     print("creating data pipeline")
     # Define the transformations for data preprocessing
     dataset = SharedDistRedisPool()
+
     # create the sampler
-    data_sampler = DistAwareDistributedSampler(
-        dataset=dataset, num_replicas=num_replicas,
-        metadata_cache_ip=metadata_cache_ip, metadata_cache_port=metadata_cache_port)
+    if sampler == "distaware":
+        data_sampler = DistAwareDistributedSampler(
+            dataset=dataset, num_replicas=num_replicas)
+    else:
+        data_sampler = DefaultDistributedSampler(
+            dataset=dataset, num_replicas=num_replicas)
+
     # create the pipeline from sampler
     dataset_pipeline = DatasetPipeline(dataset=dataset, batch_size=batch_size,
                                        sampler=data_sampler, num_replicas=num_replicas)

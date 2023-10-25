@@ -12,6 +12,38 @@ T_co = TypeVar('T_co', covariant=True)
 
 from torch.utils.data.distributed import DistributedSampler
 
+class DefaultDistributedSampler(DistributedSampler):
+    r"""Sampler that restricts data loading to a subset of the dataset.
+
+    
+    """
+
+    def __init__(self, dataset: Dataset, num_replicas: Optional[int] = None,
+                 rank: Optional[int] = None, shuffle: bool = True,
+                 seed: int = 0, drop_last: bool = False, batch_size: int = 16) -> None:
+        super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
+        self.batch_size = batch_size
+        self.data_batch_read_latency = [0] * int(self.num_samples*num_replicas)
+        self.data_batch_read_freq = [0] * int(self.num_samples*num_replicas)
+
+    def __iter__(self) -> Iterator[T_co]:
+        iterator = super.__iter__()
+        for index in iterator:
+            batch_no = int(index/self.batch_size)
+            self.data_batch_read_freq[batch_no] += 1
+
+    def dump_data_read_freq(self, output_file_path):
+        r"""dump the data access freuqncy in text to given output file path
+        
+        Args:
+            output_file_path: output file where the data will be dumped
+        """
+        with open(output_file_path, "w") as fout:
+            fout.write("batch,frequency\n")
+            for batch_no, read_freq in enumerate(self.data_batch_read_freq):
+                fout.write(str(batch_no) + "," + str(read_freq) + "\n")
+
+
 
 class DistAwareDistributedSampler(DistributedSampler):
     r"""Sampler that restricts data loading to a subset of the dataset.
@@ -21,8 +53,7 @@ class DistAwareDistributedSampler(DistributedSampler):
 
     def __init__(self, dataset: Dataset, num_replicas: Optional[int] = None,
                  rank: Optional[int] = None, shuffle: bool = True,
-                 seed: int = 0, drop_last: bool = False, batch_size: int = 16,
-                 metadata_cache_ip="0.0.0.0", metadata_cache_port=26379) -> None:
+                 seed: int = 0, drop_last: bool = False, batch_size: int = 16) -> None:
         super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
         self.batch_size = batch_size
         self.data_batch_read_latency = [0] * int(self.num_samples*num_replicas)

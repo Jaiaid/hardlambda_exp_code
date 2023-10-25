@@ -8,21 +8,23 @@ from trainer_process import get_training_process
 if __name__ == "__main__":
     # add number of process, batch size and dataset
     parser = argparse.ArgumentParser()
-    parser.add_argument("-bs", "--batch_size", type=int, help="batch size per iteration, default 16"
-        , default=16)
-    parser.add_argument("-e", "--epoch_count", type=int, help="how many epoch to train per node"
-        , default=2)
+    parser.add_argument("-bs", "--batch_size", type=int, help="batch size per iteration, default 16",
+                        default=16)
+    parser.add_argument("-e", "--epoch_count", type=int, help="how many epoch to train per node",
+                        default=2)
     parser.add_argument("-nc", "--num_class", type=int, help="how many class in dataset", required=True)
-    parser.add_argument("-n", "--process_count", type=int
-        , help="number of process in multi process training, default 1", default=1)
-    parser.add_argument("-m", "--model", choices=["toy", "resnet18"], help="which model to train, select"
-        , default="toy", required=True)
-    parser.add_argument("-d", "--dataset", choices=["cifar10", "cifar100", "imagenet"]
-        , help="on which dataset to train, select from 'cifar10', 'cifar100'", required=True)
+    parser.add_argument("-n", "--process_count", type=int,
+                        help="number of process in multi process training, default 1", default=1)
+    parser.add_argument("-m", "--model", choices=["toy", "resnet18"], help="which model to train, select",
+                        default="toy", required=True)
+    parser.add_argument("-d", "--dataset", choices=["cifar10", "cifar100", "imagenet"],
+                        help="on which dataset to train, select from 'cifar10', 'cifar100'", required=True)
     parser.add_argument("-s", "--store_strategy", choices=["baseline", "sharedlocal", "disaggregated", "local_random", "distributed_random"]
         , help="on which dataset to train, select from 'baseline', 'shared' or 'sharedpool'", required=True)
     parser.add_argument("-ddl", "--distributed", default=False, action="store_true", help="if it will be distributed")
     parser.add_argument("-gpu", "--gpu", default=False, action="store_true", help="if it will be distributed")
+    parser.add_argument("-sampler", "--sampler", choices=["default", "distaware"],
+                        help="what sampler will be used")
 
     # ddl over network iface related parameters
     parser.add_argument("-id", "--rank", type=int, help="process rank", default=0, required=False)
@@ -54,7 +56,8 @@ if __name__ == "__main__":
         get_training_process(args.store_strategy)(
             rank=args.rank, batch_size=args.batch_size, epoch_count=args.epoch_count,
             num_classes=args.num_class, dataset_name=args.dataset, model_name=args.model,
-            num_replicas=args.world_size, ddl=args.distributed, gpu=args.gpu
+            num_replicas=args.world_size, ddl=args.distributed, gpu=args.gpu,
+            sampler=args.sampler
         )
     else:
         torch.multiprocessing.spawn(get_training_process(args.store_strategy),
