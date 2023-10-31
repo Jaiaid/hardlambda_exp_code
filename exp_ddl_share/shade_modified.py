@@ -173,7 +173,7 @@ import math
 from typing import TypeVar, Optional, Iterator
 
 import torch
-from . import Sampler, Dataset
+from torch.utils.data import Dataset, Dataloader, Sampler
 import torch.distributed as dist
 
 import numpy as np 
