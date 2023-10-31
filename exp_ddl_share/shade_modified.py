@@ -44,10 +44,8 @@ T = TypeVar('T')
 #class ShadeDataset(torch.utils.data.Dataset):
 class ShadeDataset(Dataset):
 
-    def __init__(self, imagefolders, transform=None, target_transform=None, cache_data = False,
-        PQ=None, ghost_cache=None, key_counter= None, 
+    def __init__(self, transform=None, target_transform=None, cache_data = True,
         wss = 0.1, host_ip = '0.0.0.0', port_num = '6379'):
-        _datasets = []
         self.samples = []
         self.classes = []
         self.transform = transform

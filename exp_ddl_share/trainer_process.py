@@ -95,16 +95,16 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
 
     print("creating data pipeline")
     # Define the transformations for data preprocessing
-    dataset = SharedDistRedisPool()
+    if sampler != "shade":
+        dataset = SharedDistRedisPool()
+    else:
+        dataset = ShadeDataset()
 
     # create the sampler
     if sampler == "distaware":
         data_sampler = DistAwareDistributedSampler(
             dataset=dataset, num_replicas=num_replicas)
     elif sampler == "shade":
-        dataset = ShadeDataset(
-            
-        )
         data_sampler = ShadeSampler(
             dataset=dataset, num_replicas=num_replicas, batch_size=batch_size)
     else:
