@@ -45,7 +45,7 @@ T = TypeVar('T')
 class ShadeDataset(Dataset):
 
     def __init__(self, transform=None, target_transform=None, cache_data = True,
-        wss = 0.1, host_ip = '0.0.0.0', port_num = '36379'):
+        wss = 0.1, host_ip = '0.0.0.0', port_num = '6379'):
         self.samples = []
         self.classes = []
         self.transform = transform
@@ -108,6 +108,7 @@ class ShadeDataset(Dataset):
             dim_x = int(math.ceil(math.sqrt(x.shape[0]/3)))
             sample = torch.from_numpy(x.reshape(3,dim_x,dim_x))
         else:
+            transformed_index = index
             if index > 2*self.nb_samples/3:
                 transformed_index -= int(2*self.nb_samples/3)
                 select_redis_client = self.redis_client3
