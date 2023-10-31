@@ -180,7 +180,7 @@ class ShadeDataset(Dataset):
         return sample, target, index
 
     def __len__(self) -> int:
-        return len(self.nb_samples)
+        return self.nb_samples
 
 import math
 from typing import TypeVar, Optional, Iterator
