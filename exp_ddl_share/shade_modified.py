@@ -45,7 +45,7 @@ T = TypeVar('T')
 class ShadeDataset(Dataset):
 
     def __init__(self, transform=None, target_transform=None, cache_data = True,
-        wss = 0.1, host_ip = '0.0.0.0', port_num = '6379'):
+        wss = 0.1, host_ip = '0.0.0.0', port_num = '36379'):
         self.samples = []
         self.classes = []
         self.transform = transform
