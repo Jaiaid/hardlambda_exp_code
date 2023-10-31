@@ -7,12 +7,12 @@ from torch import randperm
 # No 'default_generator' in torch/__init__.pyi
 from torch import default_generator  # type: ignore
 from typing import TypeVar, Generic, Iterable, Iterator, Sequence, List, Optional, Tuple
-from ... import Tensor, Generator
+from torch import Tensor, Generator
 
 import math
 
 import torch
-from . import Sampler, Dataset
+from torch.utils.data import Sampler, Dataset
 import torch.distributed as dist
 
 import os
