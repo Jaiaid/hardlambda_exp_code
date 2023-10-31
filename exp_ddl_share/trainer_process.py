@@ -106,7 +106,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
             dataset=dataset, num_replicas=num_replicas)
     elif sampler == "shade":
         data_sampler = ShadeSampler(
-            dataset=dataset, num_replicas=num_replicas, batch_size=batch_size)
+            dataset=dataset, num_replicas=num_replicas, batch_size=batch_size, host_ip="0.0.0.0")
     else:
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=num_replicas)
