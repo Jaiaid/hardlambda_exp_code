@@ -178,7 +178,7 @@ class ShadeDataset(Dataset):
         if self.target_transform is not None:
             target = self.target_transform(y)
 
-        return sample, target, index
+        return sample, target
 
     def __len__(self) -> int:
         return self.nb_samples
