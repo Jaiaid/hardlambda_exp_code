@@ -101,11 +101,27 @@ class ShadeDataset(Dataset):
     def get_ghost_cache(self):
         return self.ghost_cache
 
-    def cache_and_evict(self, sample, target, index):
-
+    def cache_and_evict(self, index):
         if self.cache_data and self.key_id_map.exists(index):
-            pass
+            deser_x = self.key_id_map.get(index)
+            x = np.frombuffer(deser_x, dtype=np.float32)
+            dim_x = int(math.ceil(math.sqrt(x.shape[0]/3)))
+            sample = torch.from_numpy(x.reshape(3,dim_x,dim_x))
         else:
+            if index > 2*self.nb_samples/3:
+                transformed_index -= int(2*self.nb_samples/3)
+                select_redis_client = self.redis_client3
+            elif index > self.nb_samples/3:
+                transformed_index -= int(self.nb_samples/3)
+                select_redis_client = self.redis_client2
+            else:
+                select_redis_client = self.redis_client1
+
+            deser_x = select_redis_client.get("data" + str(transformed_index))
+            x = np.frombuffer(deser_x, dtype=np.float32)
+            dim_x = int(math.ceil(math.sqrt(x.shape[0]/3)))
+            sample = torch.from_numpy(x.reshape(3,dim_x,dim_x))
+
             if index in self.ghost_cache:
                 print('miss %d' %(index))
             keys_cnt = self.key_counter + 50
@@ -125,7 +141,7 @@ class ShadeDataset(Dataset):
                     pass
 
             if self.cache_data and keys_cnt < self.cache_portion:
-                self.key_id_map.set(index, sample)
+                self.key_id_map.set(index, x)
                 print("Index: ", index)
             # sample = image.convert('RGB')
         return sample
@@ -137,6 +153,7 @@ class ShadeDataset(Dataset):
         Returns:
             tuple: (sample, target, index) where target is class_index of the target class.
         """
+
         if index > 2*self.nb_samples/3:
             index -= int(2*self.nb_samples/3)
             select_redis_client = self.redis_client3
@@ -145,19 +162,15 @@ class ShadeDataset(Dataset):
             select_redis_client = self.redis_client2
         else:
             select_redis_client = self.redis_client1
-
-        deser_x = select_redis_client.get("data" + str(index))
+        
         deser_y = select_redis_client.get("label" + str(index))
-        x = np.frombuffer(deser_x, dtype=np.float32)
-        dim_x = int(math.ceil(math.sqrt(x.shape[0]/3)))
-        x = torch.from_numpy(x.reshape(3,dim_x,dim_x))
-        y = int.from_bytes(deser_y, 'little')
+        target = int.from_bytes(deser_y, 'little')
 
-        insertion_time = datetime.now()
-        insertion_time = insertion_time.strftime("%H:%M:%S")
-        print("train_search_index: %d time: %s" %(index, insertion_time))
+        # insertion_time = datetime.now()
+        # insertion_time = insertion_time.strftime("%H:%M:%S")
+        # print("train_search_index: %d time: %s" %(index, insertion_time))
 
-        sample = self.cache_and_evict(x,y,index)
+        sample = self.cache_and_evict(index)
 
         if self.transform is not None:
             sample = self.transform(sample)
@@ -167,7 +180,7 @@ class ShadeDataset(Dataset):
         return sample, target, index
 
     def __len__(self) -> int:
-        return len(self.samples)
+        return len(self.nb_samples)
 
 import math
 from typing import TypeVar, Optional, Iterator
