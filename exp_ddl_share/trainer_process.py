@@ -12,6 +12,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from torchvision.models import resnet18
 from dataset import SharedRedisPool, SharedDistRedisPool, DatasetPipeline
 from DistribSampler import DistAwareDistributedSampler, DefaultDistributedSampler
+from shade_modified import ShadeDataset, ShadeSampler
 
 
 class ToyModel(nn.Module):
@@ -100,6 +101,12 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     if sampler == "distaware":
         data_sampler = DistAwareDistributedSampler(
             dataset=dataset, num_replicas=num_replicas)
+    elif sampler == "shade":
+        dataset = ShadeDataset(
+            
+        )
+        data_sampler = ShadeSampler(
+            dataset=dataset, num_replicas=num_replicas, batch_size=batch_size)
     else:
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=num_replicas)
