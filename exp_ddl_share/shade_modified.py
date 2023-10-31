@@ -142,7 +142,7 @@ class ShadeDataset(Dataset):
                     pass
 
             if self.cache_data and keys_cnt < self.cache_portion:
-                self.key_id_map.set(index, x)
+                self.key_id_map.set(index, x.numpy().tobytes())
                 print("Index: ", index)
             # sample = image.convert('RGB')
         return sample
