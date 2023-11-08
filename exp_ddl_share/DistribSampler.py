@@ -135,8 +135,11 @@ class GradualDistAwareDistributedSampler(DistributedSampler):
                  seed: int = 0, drop_last: bool = False, batch_size: int = 16) -> None:
         super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
         self.batch_size = batch_size
-        self.data_batch_read_latency = [np.nan] * int(self.num_samples*num_replicas)
-        self.data_batch_read_freq = [np.nan] * int(self.num_samples*num_replicas)
+        batch_count = 0
+        for i in range(0, len(dataset), batch_size):
+            batch_count += 1
+        self.data_batch_read_latency = [np.nan] * int(batch_count)
+        self.data_batch_read_freq = [np.nan] * int(batch_count)
         self.batch_dist_ranking_list = list(np.argsort(self.data_batch_read_latency))
         
     def set_epoch(self, epoch: int) -> None:
@@ -182,11 +185,11 @@ class GradualDistAwareDistributedSampler(DistributedSampler):
         return iter(indices)
 
     def set_batch_time(self, batch_no:int, read_time:float):
-        idx = self.rank*self.num_replicas + batch_no
+        idx = batch_no
         self.data_batch_read_latency[idx] = read_time
 
     def get_batch_time(self, batch_no:int) -> float:
-        idx = self.rank*self.num_replicas + batch_no
+        idx = batch_no
         return self.data_batch_read_latency[idx]
 
     def dump_data_read_freq(self, output_file_path):
