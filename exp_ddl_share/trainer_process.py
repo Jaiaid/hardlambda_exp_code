@@ -134,6 +134,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         print("Memory rss footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().rss)>>20, "MiB")
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
         try:
+            epoch_start_time = time.time()
             for i, data in enumerate(dataset_pipeline):
                 t = time.time()
                 inputs, labels = data
@@ -152,6 +153,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
                 count += 1
+            print("epoch {0} took: {1}s".format(epoch, time.time() - epoch_start_time))
         except KeyboardInterrupt as e:
             print(total_time/count)
             exit(0)

@@ -139,7 +139,7 @@ class GradualDistAwareDistributedSampler(DistributedSampler):
         for i in range(0, len(dataset), batch_size):
             batch_count += 1
         self.data_batch_read_latency = [np.nan] * int(batch_count)
-        self.data_batch_read_freq = [np.nan] * int(batch_count)
+        self.data_batch_read_freq = [0] * int(batch_count)
         self.batch_dist_ranking_list = list(np.argsort(self.data_batch_read_latency))
         
     def set_epoch(self, epoch: int) -> None:
