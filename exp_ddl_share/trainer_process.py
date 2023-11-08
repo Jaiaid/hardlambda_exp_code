@@ -11,7 +11,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from torchvision.models import resnet18
 from dataset import SharedRedisPool, SharedDistRedisPool, DatasetPipeline
-from DistribSampler import DistAwareDistributedSampler, DefaultDistributedSampler
+from DistribSampler import DistAwareDistributedSampler, DefaultDistributedSampler, GradualDistAwareDistributedSampler
 from shade_modified import ShadeDataset, ShadeSampler
 
 
@@ -107,6 +107,9 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     elif sampler == "shade":
         data_sampler = ShadeSampler(
             dataset=dataset, num_replicas=num_replicas, batch_size=batch_size, host_ip="0.0.0.0")
+    elif sampler == "graddist":
+        data_sampler = GradualDistAwareDistributedSampler(
+            dataset=dataset, num_replicas=num_replicas, batch_size=batch_size)
     else:
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=num_replicas)
@@ -143,6 +146,8 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 # we are adding with the assumption that all rank's train equal epoch count
                 # therefore, summation of time is indicative of delay
                 batch_read_time[i] += time.time() - t
+                # set the time
+                data_sampler.set_batch_time(i, batch_read_time[i])
                 # train one iteration
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
