@@ -23,7 +23,7 @@ if __name__ == "__main__":
         , help="on which dataset to train, select from 'baseline', 'shared' or 'sharedpool'", required=True)
     parser.add_argument("-ddl", "--distributed", default=False, action="store_true", help="if it will be distributed")
     parser.add_argument("-gpu", "--gpu", default=False, action="store_true", help="if it will be distributed")
-    parser.add_argument("-sampler", "--sampler", choices=["default", "distaware", "shade", "graddist"],
+    parser.add_argument("-sampler", "--sampler", choices=["default", "distaware", "shade", "graddist", "graddistbg"],
                         help="what sampler will be used")
 
     # ddl over network iface related parameters
@@ -32,6 +32,8 @@ if __name__ == "__main__":
     parser.add_argument("-ip", "--ip", type=str, help="master ip", default="127.0.0.1", required=False)
     parser.add_argument("-p", "--port", type=int, help="master port", default=26379, required=False)
     parser.add_argument("-if", "--iface", type=str, help="network device name", default="lo", required=False)
+    parser.add_argument("-ipm", "--ip_mover", type=str, help="data move service ip", default="lo", required=False)
+    parser.add_argument("-portm", "--port_mover", type=str, help="data move service port", default="lo", required=False)
     
     # get arguments
     args = parser.parse_args()
@@ -57,7 +59,7 @@ if __name__ == "__main__":
             rank=args.rank, batch_size=args.batch_size, epoch_count=args.epoch_count,
             num_classes=args.num_class, dataset_name=args.dataset, model_name=args.model,
             num_replicas=args.world_size, ddl=args.distributed, gpu=args.gpu,
-            sampler=args.sampler
+            sampler=args.sampler, args=args
         )
     else:
         torch.multiprocessing.spawn(get_training_process(args.store_strategy),
