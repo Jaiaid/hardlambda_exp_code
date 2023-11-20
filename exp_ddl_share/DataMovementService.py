@@ -83,7 +83,7 @@ class DataMoverServiceInterfaceClient():
         # send the cmd
         self.connection_socket.send(
             DataMoverServiceInterfaceClient.convert_to_cmdbuffer("batch"))
-        self.connection_socket.send(int.from_bytes(batch_no))
+        self.connection_socket.send(int.from_bytes(batch_no, byteorder="little"))
         
     def close(self):
         # send the cmd
