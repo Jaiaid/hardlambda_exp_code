@@ -132,7 +132,9 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     fout.close()
 
     if sampler == "graddistbg":
+        print("starting data movement service")
         data_mover = DataMoverServiceInterfaceClient(args.ip_mover, args.port_mover)
+        print("data movement service is working in background")
 
     for epoch in range(epoch_count):
         print("starting training epoch {0}...".format(epoch))
@@ -144,6 +146,11 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
             for i, data in enumerate(dataset_pipeline):
                 t = time.time()
                 inputs, labels = data
+                # got the data now issue cache update cmd
+                # if data movement in background is running
+                # which is the case for "graddistbg" sampler
+                if sampler == "graddistbg":
+                    data_mover.updatecache(i)
                 # generate label and move to GPU
                 one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
                 if gpu:
@@ -159,10 +166,6 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
                 count += 1
-                # if data movement in background is running
-                # which is the case for "graddistbg" sampler
-                if sampler == "graddistbg":
-                    data_mover.updatecache(i)
             print("epoch {0} took: {1}s".format(epoch, time.time() - epoch_start_time))
         except KeyboardInterrupt as e:
             print(total_time/count)
