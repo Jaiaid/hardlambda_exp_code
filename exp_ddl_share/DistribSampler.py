@@ -4,6 +4,7 @@ import numpy as np
 import torch.distributed as dist
 from torch.utils.data import Dataset
 import time
+import math
 
 T_co = TypeVar('T_co', covariant=True)
 
@@ -215,6 +216,7 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
                  seed: int = 0, drop_last: bool = False, batch_size: int = 16) -> None:
         super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
         self.batch_size = batch_size
+        self.total_batch = math.ceil(len(dataset)/batch_size)
         batch_count = 0
         for i in range(0, len(dataset), batch_size):
             batch_count += 1
@@ -225,7 +227,6 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
         return super().set_epoch(epoch)
 
     def __iter__(self) -> Iterator[T_co]:
-        total_batch = len(self.batch_dist_ranking_list)
         num_batch_per_replica = int(self.total_size / (self.num_replicas * self.batch_size))
         # we are not modding this for batch generation logic simplification
         end_idx = num_batch_per_replica
