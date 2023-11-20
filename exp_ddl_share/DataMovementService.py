@@ -11,7 +11,9 @@ class DataMoverService():
         for cacheip, port in cachelist:
             cache_client_list.append(
                 redis.StrictRedis(host=cacheip, port=port, db=0))
-            
+
+        return cache_client_list
+
     def start(self, batch_size: int, cachelist: list, ip: str,
               port: int, seqno:int, peerlist: list) -> None:
         self.batch_size = batch_size
@@ -48,12 +50,12 @@ class DataMoverService():
             # recv from trainer
             # cmd size will be at most 16
             cmd = self.trainer_socket.recv(16).decode("utf-8")
-            if cmd == "batch":
+            if cmd[:5] == "batch":
                 batch_no = int.from_bytes(self.trainer_socket.recv(4), "little")
                 self.updatecache(batch_no=batch_no)
                 # update done send message
                 self.trainer_socket.send(b"done")
-            elif cmd == "exit":
+            elif cmd[:4] == "exit":
                 self.server_socket.close()
                 break
 
@@ -76,8 +78,8 @@ class DataMoverServiceInterfaceClient():
         # if not first time see if you have received any "done" message"
         if not self.first_time:
             cmd = ""
-            while cmd != "done":
-                cmd = self.connection_socket.recv(16).decode("utf-8")
+            while cmd[0:4] != "done":
+                cmd = self.connection_socket.recv(4).decode("utf-8")
         self.first_time = False
 
         # send the cmd
