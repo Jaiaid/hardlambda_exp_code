@@ -162,7 +162,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 # if data movement in background is running
                 # which is the case for "graddistbg" sampler
                 if sampler == "graddistbg":
-                    data_mover.updatecache()
+                    data_mover.updatecache(i)
             print("epoch {0} took: {1}s".format(epoch, time.time() - epoch_start_time))
         except KeyboardInterrupt as e:
             print(total_time/count)
