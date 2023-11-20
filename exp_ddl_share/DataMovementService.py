@@ -60,7 +60,7 @@ class DataMoverService():
 class DataMoverServiceInterfaceClient():
     def __init__(self, ip: str, port: str):
         self.connection_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connection_socket.connect((ip, port))
+        self.connection_socket.connect((ip, int(port)))
         self.first_time = True
 
     @staticmethod
