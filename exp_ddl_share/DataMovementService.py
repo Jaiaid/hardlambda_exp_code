@@ -104,14 +104,14 @@ if __name__ == "__main__":
     # get arguments
     args = parser.parse_args()
 
-    cache_nodes = []
+    cache_nodes_processed = []
     for i in range(0, len(args.cache_nodes), 2):
-        cache_nodes.append(("".join(args.cache_nodes[i]), "".join(args.cache_nodes[i+1])))
-    print(cache_nodes)
+        cache_nodes_processed.append(("".join(args.cache_nodes[i]), "".join(args.cache_nodes[i+1])))
+
     service = DataMoverService()
     # start
     service.start(
-        batch_size=args.batch_size, cachelist=args.cache_nodes, ip="127.0.0.1", port=args.port,
+        batch_size=args.batch_size, cachelist=cache_nodes_processed, ip="127.0.0.1", port=args.port,
         seqno=args.seqno, peerlist=args.peer_nodes
     )
     service.getcmd()
