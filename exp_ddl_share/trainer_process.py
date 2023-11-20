@@ -11,9 +11,9 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 
 from torchvision.models import resnet18
 from dataset import SharedRedisPool, SharedDistRedisPool, DatasetPipeline
-from DistribSampler import DistAwareDistributedSampler, DefaultDistributedSampler, GradualDistAwareDistributedSampler
+from DistribSampler import DistAwareDistributedSampler, DefaultDistributedSampler, GradualDistAwareDistributedSampler, GradualDistAwareDistributedSamplerBG
 from shade_modified import ShadeDataset, ShadeSampler
-
+from DataMovementService import DataMoverServiceInterfaceClient
 
 class ToyModel(nn.Module):
     def __init__(self):
@@ -76,7 +76,7 @@ def get_model(name:str, num_classes:int) -> torch.nn.Module:
 
 def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes,
                                        dataset_name, model_name, num_replicas=None, ddl=None, gpu=False,
-                                       sampler=None):
+                                       sampler=None, args=None):
     print("creating model pipeline")
     # create the model training pipeline
     training_pipeline = ModelPipeline(model=get_model(model_name, num_classes=num_classes))
@@ -110,6 +110,9 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     elif sampler == "graddist":
         data_sampler = GradualDistAwareDistributedSampler(
             dataset=dataset, num_replicas=num_replicas, batch_size=batch_size)
+    elif sampler == "graddistbg":
+        data_sampler = GradualDistAwareDistributedSamplerBG(
+            dataset=dataset, num_replicas=num_replicas, batch_size=batch_size)
     else:
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=num_replicas)
@@ -127,6 +130,9 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     fout = open("latency_data_rank_{0}.csv".format(rank), "w")
     fout.write("epoch,batch,batch size,read time (s)\n")
     fout.close()
+
+    if sampler == "graddistbg":
+        data_mover = DataMoverServiceInterfaceClient(args.ip_mover, args.port_mover)
 
     for epoch in range(epoch_count):
         print("starting training epoch {0}...".format(epoch))
@@ -153,6 +159,10 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
                 count += 1
+                # if data movement in background is running
+                # which is the case for "graddistbg" sampler
+                if sampler == "graddistbg":
+                    data_mover.updatecache()
             print("epoch {0} took: {1}s".format(epoch, time.time() - epoch_start_time))
         except KeyboardInterrupt as e:
             print(total_time/count)
@@ -165,6 +175,10 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
             for batch_no, latency in enumerate(batch_read_time):
                 fout.write(str(epoch) + "," + str(batch_no) + "," + str(batch_size) + "," + str(latency) + "\n")
                 batch_read_time[batch_no] = 0
+    
+        
+    if sampler == "graddistbg":
+        data_mover.close()
 
     # dump data read freq, only rank 0 will init that
     dataset_pipeline.dump_data_read_freq("freq_data_rank_{0}.csv".format(rank))

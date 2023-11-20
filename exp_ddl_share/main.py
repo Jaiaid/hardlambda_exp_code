@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
     # start training
     if args.distributed:
-        get_training_process(args.store_strategy)(
+        get_training_process(args.store_strategy
             rank=args.rank, batch_size=args.batch_size, epoch_count=args.epoch_count,
             num_classes=args.num_class, dataset_name=args.dataset, model_name=args.model,
             num_replicas=args.world_size, ddl=args.distributed, gpu=args.gpu,
