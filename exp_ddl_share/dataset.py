@@ -91,8 +91,8 @@ class SharedDistRedisPool(Dataset):
     def __len__(self):
         return self.nb_samples
 
-    def get_query_stat():
-        return
+    def get_query_stat(self):
+        return self.redis_query_stat
 
 class DatasetPipeline():
     def __init__(self, dataset:Dataset, batch_size:int, sampler:DistributedSampler=None, num_replicas:int=None) -> None:
