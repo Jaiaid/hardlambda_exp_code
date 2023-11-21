@@ -201,7 +201,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     
     # dump prof data in rank<rank>_<sampler>.timedata
     if args.epoch_prof:
-        with open("rank{0}_{1}.timedata".format(rank, sampler)) as fin:
+        with open("rank{0}_{1}.timedata".format(rank, sampler), "w") as fin:
             fin.write("batch read avg time: {0}s\n".format(batch_read_avg_time/processed_batch_count))
             fin.write("cache update avg time: {0}s\n".format(cache_update_avg_time/processed_batch_count))
             fin.write("backprop step avg time: {0}s\n".format(backprop_step_avg_time/processed_batch_count))
