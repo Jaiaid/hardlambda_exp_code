@@ -182,7 +182,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
                 count += 1
-                processed_batch_count += batch_size
+                processed_batch_count += 1
                 if args.epoch_prof:
                     backprop_step_avg_time = time.time() - t3
 
@@ -206,6 +206,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
             fin.write("cache update avg time: {0}s\n".format(cache_update_avg_time/processed_batch_count))
             fin.write("backprop step avg time: {0}s\n".format(backprop_step_avg_time/processed_batch_count))
             fin.write("processed batch count: {0}\n".format(processed_batch_count))
+            fin.write("redis query count: {0}\n".format(dataset.get_query_stat()))
 
     if sampler == "graddistbg":
         data_mover.close()

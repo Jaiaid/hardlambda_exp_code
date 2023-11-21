@@ -63,16 +63,21 @@ class SharedDistRedisPool(Dataset):
         redis_port3 = 26380  # Change this to your Redis server's port
         self.redis_client3 = redis.StrictRedis(host=redis_host3, port=redis_port3, db=0)
         self.nb_samples += int.from_bytes(self.redis_client3.get("length"), 'little')
+
+        self.redis_query_stat = { '10.21.12.222': 0, '10.21.12.239': 0, '10.21.12.239': 0}
     
     def __getitem__(self, index):
         if index > 2*self.nb_samples/3:
             index -= int(2*self.nb_samples/3)
             select_redis_client = self.redis_client3
+            self.redis_query_stat['10.21.12.239'] += 1
         elif index > self.nb_samples/3:
             index -= int(self.nb_samples/3)
             select_redis_client = self.redis_client2
+            self.redis_query_stat['10.21.12.239'] += 1
         else:
             select_redis_client = self.redis_client1
+            self.redis_query_stat['10.21.12.222'] += 1
 
         deser_x = select_redis_client.get("data" + str(index))
         deser_y = select_redis_client.get("label" + str(index))
@@ -86,6 +91,8 @@ class SharedDistRedisPool(Dataset):
     def __len__(self):
         return self.nb_samples
 
+    def get_query_stat():
+        return
 
 class DatasetPipeline():
     def __init__(self, dataset:Dataset, batch_size:int, sampler:DistributedSampler=None, num_replicas:int=None) -> None:
