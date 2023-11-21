@@ -34,6 +34,9 @@ if __name__ == "__main__":
     parser.add_argument("-if", "--iface", type=str, help="network device name", default="lo", required=False)
     parser.add_argument("-ipm", "--ip_mover", type=str, help="data move service ip", default="lo", required=False)
     parser.add_argument("-portm", "--port_mover", type=str, help="data move service port", default="lo", required=False)
+    # if epoch timing profile
+    parser.add_argument("-eprof", "--epoch_prof", type=bool, action="store_true",
+    help="will only run one epoch to report timing data of different portion in rank<rank>.timedata file", default=False, required=False)
     
     # get arguments
     args = parser.parse_args()

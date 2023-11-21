@@ -136,6 +136,14 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         data_mover = DataMoverServiceInterfaceClient(args.ip_mover, args.port_mover)
         print("data movement service is working in background")
 
+    # if epoch profiling only run one epoch
+    if args.epoch_prof:
+        epoch_count = 1
+        batch_read_avg_time = 0
+        cache_update_avg_time = 0
+        backprop_step_avg_time = 0
+        processed_batch_count = 0
+
     for epoch in range(epoch_count):
         print("starting training epoch {0}...".format(epoch))
         dataset_pipeline.set_epoch(epoch)
@@ -146,12 +154,20 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
             for i, data in enumerate(dataset_pipeline):
                 t = time.time()
                 inputs, labels = data
+                if args.epoch_prof:
+                    batch_read_avg_time += time.time() - t
                 # got the data now issue cache update cmd
                 # if data movement in background is running
                 # which is the case for "graddistbg" sampler
-                if sampler == "graddistbg":
+                if sampler == "graddistbg":    
+                    if args.epoch_prof:
+                        t2 = time.time()
                     data_mover.updatecache(i)
+                    if args.epoch_prof:
+                        cache_update_avg_time += time.time() - t2
                 # generate label and move to GPU
+                if args.epoch_prof:
+                    t3 = time.time()
                 one_hot = torch.nn.functional.one_hot(labels, num_classes=num_classes).float()
                 if gpu:
                     inputs = inputs.cuda(torch.device('cuda', device_idx))
@@ -166,6 +182,10 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
                 count += 1
+                processed_batch_count += batch_size
+                if args.epoch_prof:
+                    backprop_step_avg_time = time.time() - t3
+
             print("epoch {0} took: {1}s".format(epoch, time.time() - epoch_start_time))
         except KeyboardInterrupt as e:
             print(total_time/count)
@@ -179,7 +199,14 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 fout.write(str(epoch) + "," + str(batch_no) + "," + str(batch_size) + "," + str(latency) + "\n")
                 batch_read_time[batch_no] = 0
     
-        
+    # dump prof data in rank<rank>_<sampler>.timedata
+    if args.epoch_prof:
+        with open("rank{0}_{1}.timedata".format(rank, sampler)) as fin:
+            fin.write("batch read avg time: {0}s\n".format(batch_read_avg_time/processed_batch_count))
+            fin.write("cache update avg time: {0}s\n".format(cache_update_avg_time/processed_batch_count))
+            fin.write("backprop step avg time: {0}s\n".format(backprop_step_avg_time/processed_batch_count))
+            fin.write("processed batch count: {0}\n".format(processed_batch_count))
+
     if sampler == "graddistbg":
         data_mover.close()
 
