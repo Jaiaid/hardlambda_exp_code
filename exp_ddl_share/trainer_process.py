@@ -113,6 +113,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     elif sampler == "graddistbg":
         data_sampler = GradualDistAwareDistributedSamplerBG(
             dataset=dataset, num_replicas=num_replicas, batch_size=batch_size)
+        data_sampler.set_rank(rank=rank)
     else:
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=num_replicas)

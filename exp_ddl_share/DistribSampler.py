@@ -222,17 +222,23 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
             batch_count += 1
         self.data_batch_read_latency = [np.nan] * int(batch_count)
         self.data_batch_read_freq = [0] * int(batch_count)
-        
+        # needed to provide index from appropriate offset
+        self.rank = 0
+
     def set_epoch(self, epoch: int) -> None:
         return super().set_epoch(epoch)
+    
+    def set_rank(self, rank: int) -> None:
+        self.rank = rank
 
     def __iter__(self) -> Iterator[T_co]:
         num_batch_per_replica = int(self.total_size / (self.num_replicas * self.batch_size))
         # we are not modding this for batch generation logic simplification
         end_idx = num_batch_per_replica
 
-        indices = list(range(0, end_idx * self.batch_size))
-            
+        indices = list(range(self.rank * num_batch_per_replica * self.batch_size,
+                             self.rank * num_batch_per_replica * self.batch_size + end_idx * self.batch_size))
+
         for index in indices:
             batch_no = int(index/self.batch_size)
             self.data_batch_read_freq[batch_no] += 1
