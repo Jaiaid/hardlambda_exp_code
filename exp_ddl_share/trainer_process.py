@@ -143,7 +143,17 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     fout.close()
 
     if sampler == "graddistbg":
-        data_mover = DataMoverServiceInterfaceClient(args.ip_mover, args.port_mover)
+        # try 10 times to connect
+        connection_refused_count = 0
+        while connection_refused_count < 10: 
+            try:
+                data_mover = DataMoverServiceInterfaceClient(args.ip_mover, args.port_mover)
+                break
+            except ConnectionError as e:
+                connection_refused_count += 1
+                print("connection establish attempt {0}".format(connection_refused_count))
+                # sleep for a second
+                time.sleep(1)
         print("data movement service client interface is opened")
 
     # if epoch profiling only run one epoch
