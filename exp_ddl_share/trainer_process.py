@@ -1,5 +1,6 @@
 import os
 import psutil
+import subprocess
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -114,6 +115,11 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         data_sampler = GradualDistAwareDistributedSamplerBG(
             dataset=dataset, num_replicas=num_replicas, batch_size=batch_size)
         data_sampler.set_rank(rank=rank)
+        # starting the background data mover service
+        data_mover_service = subprocess.Popen(
+            """python3 DataMovementService.py --seqno {0}
+            -bs 16 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(rank, args.portm).split()
+        )
     else:
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=num_replicas)
@@ -211,6 +217,8 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
 
     if sampler == "graddistbg":
         data_mover.close()
+        data_mover_service.kill()
+
 
     # dump data read freq, only rank 0 will init that
     dataset_pipeline.dump_data_read_freq("freq_data_rank_{0}.csv".format(rank))
