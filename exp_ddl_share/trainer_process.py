@@ -117,9 +117,13 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         data_sampler.set_rank(rank=rank)
         # starting the background data mover service
         data_mover_service = subprocess.Popen(
-            """python3 DataMovementService.py --seqno {0}
-            -bs 16 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(rank, args.port_mover).split()
+            """python3 {2}/DataMovementService.py --seqno {0}
+            -bs 16 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(
+                rank, args.port_mover, os.path.dirname(os.path.abspath(__file__))).split()
         )
+        # check if running
+        if data_mover_service.poll() is None:
+            print("data mover service is running")
     else:
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=num_replicas)
@@ -139,9 +143,8 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     fout.close()
 
     if sampler == "graddistbg":
-        print("starting data movement service")
         data_mover = DataMoverServiceInterfaceClient(args.ip_mover, args.port_mover)
-        print("data movement service is working in background")
+        print("data movement service client interface is opened")
 
     # if epoch profiling only run one epoch
     if args.epoch_prof:
