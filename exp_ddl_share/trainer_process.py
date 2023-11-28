@@ -119,7 +119,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         data_mover_service = subprocess.Popen(
             """python3 {2}/DataMovementService.py --seqno {0}
             -bs 16 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(
-                rank, args.port_mover, os.path.dirname(os.path.abspath(__file__))).split()
+                rank if rank < 3 else 2, args.port_mover, os.path.dirname(os.path.abspath(__file__))).split()
         )
         # check if running
         if data_mover_service.poll() is None:
@@ -151,9 +151,10 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 break
             except ConnectionError as e:
                 connection_refused_count += 1
-                print("connection establish attempt {0}".format(connection_refused_count))
+                print("connection establish attempt {0} failed".format(connection_refused_count))
                 # sleep for a second
                 time.sleep(1)
+
         if connection_refused_count == 10:
             print("connection failed, exiting...")
             data_mover_service.kill()
