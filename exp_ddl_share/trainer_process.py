@@ -154,7 +154,13 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 print("connection establish attempt {0}".format(connection_refused_count))
                 # sleep for a second
                 time.sleep(1)
-        print("data movement service client interface is opened")
+        if connection_refused_count == 10:
+            print("connection failed, exiting...")
+            data_mover_service.kill()
+            exit(1)
+        else:
+            print("connection successful after {0} attempt".format(connection_refused_count))
+            print("data movement service client interface is opened")
 
     # if epoch profiling only run one epoch
     if args.epoch_prof:
