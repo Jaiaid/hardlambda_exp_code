@@ -118,7 +118,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         # starting the background data mover service
         data_mover_service = subprocess.Popen(
             """python3 DataMovementService.py --seqno {0}
-            -bs 16 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(rank, args.portm).split()
+            -bs 16 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(rank, args.port_mover).split()
         )
     else:
         data_sampler = DefaultDistributedSampler(
