@@ -204,7 +204,8 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 # therefore, summation of time is indicative of delay
                 batch_read_time[i] += time.time() - t
                 # set the time
-                data_sampler.set_batch_time(i, batch_read_time[i])
+                if sampler != "shade":
+                    data_sampler.set_batch_time(i, batch_read_time[i])
                 # train one iteration
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
