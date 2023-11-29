@@ -209,9 +209,9 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
                 total_time += time.time() - t
                 count += 1
-                processed_batch_count += 1
                 if args.epoch_prof:
                     backprop_step_avg_time = time.time() - t3
+                    processed_batch_count += 1
 
             print("epoch {0} took: {1}s".format(epoch, time.time() - epoch_start_time))
         except KeyboardInterrupt as e:
