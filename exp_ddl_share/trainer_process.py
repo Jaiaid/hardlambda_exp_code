@@ -165,7 +165,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
 
     # if epoch profiling only run one epoch
     if args.epoch_prof:
-        epoch_count = 1
+        epoch_count = 3
         batch_read_avg_time = 0
         cache_update_avg_time = 0
         backprop_step_avg_time = 0
