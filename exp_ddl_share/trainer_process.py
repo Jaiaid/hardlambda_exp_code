@@ -240,7 +240,6 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         data_mover.close()
         data_mover_service.kill()
 
-
-    # dump data read freq, only rank 0 will init that
-    dataset_pipeline.dump_data_read_freq("freq_data_rank_{0}.csv".format(rank))
-
+    if sampler != "shader":
+        # dump data read freq, only rank 0 will init that
+        dataset_pipeline.dump_data_read_freq("freq_data_rank_{0}.csv".format(rank))
