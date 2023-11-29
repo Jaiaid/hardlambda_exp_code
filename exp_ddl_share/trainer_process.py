@@ -183,6 +183,10 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 inputs, labels = data
                 if args.epoch_prof:
                     batch_read_avg_time += time.time() - t
+                # record the batch_read time
+                # we are adding with the assumption that all rank's train equal epoch count
+                # therefore, summation of time is indicative of delay
+                batch_read_time[i] += time.time() - t
                 # got the data now issue cache update cmd
                 # if data movement in background is running
                 # which is the case for "graddistbg" sampler
@@ -199,10 +203,6 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 if gpu:
                     inputs = inputs.cuda(torch.device('cuda', device_idx))
                     one_hot = one_hot.cuda(torch.device('cuda', device_idx))
-                # record the batch_read time
-                # we are adding with the assumption that all rank's train equal epoch count
-                # therefore, summation of time is indicative of delay
-                batch_read_time[i] += time.time() - t
                 # set the time
                 if sampler != "shade":
                     data_sampler.set_batch_time(i, batch_read_time[i])
@@ -213,6 +213,14 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 if args.epoch_prof:
                     backprop_step_avg_time = time.time() - t3
                     processed_batch_count += 1
+
+                # it seems del does not cause garbage collection 
+                # but it reduces reference which should cause garbage collection
+                # to my understanding at end of each iteration memory should be reclaimed
+                # https://stackoverflow.com/questions/14969739/python-del-statement
+                # this is to ensure that we are not keeping data cached
+                del inputs
+                del labels
 
             print("epoch {0} took: {1}s".format(epoch, time.time() - epoch_start_time))
         except KeyboardInterrupt as e:
@@ -234,7 +242,8 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
             fin.write("cache update avg time: {0}s\n".format(cache_update_avg_time/processed_batch_count))
             fin.write("backprop step avg time: {0}s\n".format(backprop_step_avg_time/processed_batch_count))
             fin.write("processed batch count: {0}\n".format(processed_batch_count))
-            fin.write("redis query count: {0}\n".format(dataset.get_query_stat()))
+            if sampler != "shade":
+                fin.write("redis query count: {0}\n".format(dataset.get_query_stat()))
 
     if sampler == "graddistbg":
         data_mover.close()
