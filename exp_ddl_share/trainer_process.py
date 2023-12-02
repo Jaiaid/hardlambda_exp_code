@@ -1,6 +1,7 @@
 import os
 import psutil
 import subprocess
+import time
 import torch
 import torch.distributed as dist
 import torch.nn as nn
@@ -78,6 +79,7 @@ def get_model(name:str, num_classes:int) -> torch.nn.Module:
 def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classes,
                                        dataset_name, model_name, num_replicas=None, ddl=None, gpu=False,
                                        sampler=None, args=None):
+    t_beg = time.time()
     print("creating model pipeline")
     # create the model training pipeline
     training_pipeline = ModelPipeline(model=get_model(model_name, num_classes=num_classes))
@@ -134,7 +136,6 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     # to keep track of which data batch reading takes what time
     batch_read_time = [0] * int(dataset.nb_samples/batch_size + 1)
 
-    import time
     total_time = 0
     count = 0
     # to clean existing file
@@ -170,6 +171,8 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         backprop_step_avg_time = 0
         processed_batch_count = 0
 
+    print("initialization took {0}s".format(time.time() - t_beg))
+    t_train = time.time()
     for epoch in range(epoch_count):
         print("starting training epoch {0}...".format(epoch))
         dataset_pipeline.set_epoch(epoch)
@@ -207,8 +210,6 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                     data_sampler.set_batch_time(i, batch_read_time[i])
                 # train one iteration
                 training_pipeline.run_train_step(inputs=inputs, labels=one_hot)
-                total_time += time.time() - t
-                count += 1
                 if args.epoch_prof:
                     backprop_step_avg_time = time.time() - t3
                     processed_batch_count += 1
@@ -220,7 +221,10 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 # this is to ensure that we are not keeping data cached
                 del inputs
                 del labels
-
+                
+                total_time += time.time() - t
+                count += 1
+                
             print("epoch {0} took: {1}s".format(epoch, time.time() - epoch_start_time))
         except KeyboardInterrupt as e:
             print(total_time/count)
@@ -234,6 +238,10 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
                 fout.write(str(epoch) + "," + str(batch_no) + "," + str(batch_size) + "," + str(latency) + "\n")
                 batch_read_time[batch_no] = 0
     
+    print("training took {0}s".format(time.time() - t_train))
+    print("per iteration average time {0}s with iteration count {1}".format(total_time / count, count))
+
+    t_dump = time.time()
     # dump prof data in rank<rank>_<sampler>.timedata
     if args.epoch_prof:
         with open("rank{0}_{1}.timedata".format(rank, sampler), "w") as fin:
@@ -251,3 +259,5 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
     if sampler != "shader":
         # dump data read freq, only rank 0 will init that
         dataset_pipeline.dump_data_read_freq("freq_data_rank_{0}.csv".format(rank))
+
+    print("data dump took {0}s".format(time.time() - t_dump))
