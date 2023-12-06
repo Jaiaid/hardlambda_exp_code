@@ -180,7 +180,7 @@ def train_process_pool_distrib_shuffle(rank, batch_size, epoch_count, num_classe
         print("Memory shared footprint of process ", rank, " at epoch", epoch, " start", (psutil.Process().memory_info().shared)>>20, "MiB")
         try:
             epoch_start_time = time.time()
-            for i in range(len(dataset)/(4*batch_size)):
+            for i in range(int(len(dataset)//(4*batch_size))):
                 t = time.time()
                 data = next(iter(dataset_pipeline))
                 inputs, labels = data
