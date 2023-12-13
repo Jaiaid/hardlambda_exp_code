@@ -9,6 +9,7 @@ import nvidia.dali.fn as fn
 import nvidia.dali.types as types
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
+from nvidia.dali import pipeline_def, Pipeline
 
 
 
@@ -122,7 +123,7 @@ class DatasetPipeline():
         self.sampler = sampler
         if sampler is not None:
             self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler)
-        else if sampler == "dali":
+        elif sampler == "dali":
             num_threads = int(psutil.cpu_count(logical=False)//2)
             device_id = 0
             self.dataset = dataset
