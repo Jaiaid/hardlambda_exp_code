@@ -23,7 +23,7 @@ if __name__ == "__main__":
         , help="on which dataset to train, select from 'baseline', 'shared' or 'sharedpool'", required=True)
     parser.add_argument("-ddl", "--distributed", default=False, action="store_true", help="if it will be distributed")
     parser.add_argument("-gpu", "--gpu", default=False, action="store_true", help="if it will be distributed")
-    parser.add_argument("-sampler", "--sampler", choices=["default", "distaware", "shade", "graddist", "graddistbg"],
+    parser.add_argument("-sampler", "--sampler", choices=["default", "distaware", "shade", "graddist", "graddistbg", "dali"],
                         help="what sampler will be used")
 
     # ddl over network iface related parameters

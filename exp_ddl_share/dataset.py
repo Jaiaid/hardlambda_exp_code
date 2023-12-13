@@ -1,10 +1,15 @@
 import math
+import psutil
 import numpy as np
 import redis
 import ctypes
 import torch
 import torchvision
+import nvidia.dali.fn as fn
+import nvidia.dali.types as types
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
+from nvidia.dali.plugin.pytorch import DALIGenericIterator
+
 
 
 def get_dataset(dataset_name:str):
@@ -95,11 +100,36 @@ class SharedDistRedisPool(Dataset):
     def get_query_stat(self):
         return self.redis_query_stat
 
+class PyTorchDaliPipeline(Pipeline):
+    def __init__(self, pytorch_dataset, batch_size, num_threads, device_id):
+        super(PyTorchDaliPipeline, self).__init__(batch_size, num_threads, device_id, seed=12)
+        self.input = ops.PythonFunction(function=self.load_data, output_layout=[("data", types.FLOAT), ("label", types.INT32)])
+        self.pytorch_dataset = pytorch_dataset
+        self.batch_size = batch_size
+
+    def load_data(self):
+        # Use the PyTorch dataset to load data
+        for _ in range(self.batch_size):
+            sample = self.pytorch_dataset[np.random.randint(len(self.pytorch_dataset))]
+            yield (sample['data'], sample['label'])
+
+    def define_graph(self):
+        return self.input()
+
 class DatasetPipeline():
     def __init__(self, dataset:Dataset, batch_size:int, sampler:DistributedSampler=None, num_replicas:int=None) -> None:
+        self.pipeline = None
+        self.sampler = sampler
         if sampler is not None:
-            self.sampler = sampler
             self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler)
+        else if sampler == "dali":
+            num_threads = int(psutil.cpu_count(logical=False)//2)
+            device_id = 0
+            self.dataset = dataset
+            self.pipeline = PyTorchDaliPipeline(
+                pytorch_dataset=dataset, batch_size=batch_size,
+                num_threads=num_threads, device_id=device_id)
+            dali_pipeline.build()
         else:
             self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
 
@@ -107,6 +137,11 @@ class DatasetPipeline():
         self.sampler.set_epoch(epoch)
 
     def __iter__(self):
+        if self.sampler == "dali":
+            return DALIGenericIterator(
+                pipelines=[self.pipeline], output_map=["data", "label"],
+                size=len(self.dataset)
+            )
         return self.dataloader._get_iterator()
     
     def dump_data_read_freq(self, output_file_path:str):
