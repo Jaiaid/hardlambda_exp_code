@@ -23,7 +23,7 @@ columns = ["firstname","middlename","lastname","dob","gender","salary"]
 df = spark.createDataFrame(data=data, schema = columns)
 
 df.createOrReplaceTempView("PERSON_DATA")
-while i in range(1000000):
+for i in range(1000000):
     df2 = spark.sql("SELECT * from PERSON_DATA")
     df2.collect()
 df2.printSchema()
