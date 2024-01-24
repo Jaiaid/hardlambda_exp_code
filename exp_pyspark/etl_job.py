@@ -1,12 +1,24 @@
 
 # Import SparkSession
 from pyspark.sql import SparkSession
+from pyspark import SparkConf, SparkContext
+
+import os
+os.environ["SPARK_HOME"] = r"/opt/spark/spark-3.5.0-bin-hadoop3"
+#os.environ["PYSPARK_SUBMIT_ARGS"] = "--master spark://10.21.12.222:19489 --total-executor 2 pyspark-shell"
+#os.environ["JAVA_HOME"] = r"/usr/bin"
 
 # Create SparkSession
-spark = SparkSession.builder \
-      .master("local[1]") \
-      .appName("SparkByExamples.com") \
-      .getOrCreate()
+#spark = SparkSession.builder \
+#      .master("spark://10.21.12.222:19489") \
+#      .appName("SparkByExamples.com") \
+#      .getOrCreate()
+master_url = "spark://10.21.22.222:19489"  # Replace with the actual master IP and port
+
+# Create a Spark configuration and context
+conf = SparkConf().setAppName("MySparkApplication").setMaster(master_url)
+spark = SparkContext(conf=conf)
+
 
 # Create RDD from parallelize
 dataList = [("Java", 20000), ("Python", 100000), ("Scala", 3000)]
