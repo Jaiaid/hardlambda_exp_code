@@ -146,7 +146,9 @@ class DatasetPipeline():
         return self.dataloader._get_iterator()
     
     def __len__(self):
-        return len(self.dataset)
+        if sampler == "dali":
+            return len(self.dataset)
+        return len(self.dataloader)
     
     def dump_data_read_freq(self, output_file_path:str):
         self.sampler.dump_data_read_freq(output_file_path=output_file_path)
