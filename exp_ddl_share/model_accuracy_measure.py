@@ -249,7 +249,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
 
     # Data loading code
-    traindir = os.path.join(args.data, 'train')
     # we will get validation data locally
     valdir = os.path.join(IMAGENET_DATA_DIR, 'val')
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
