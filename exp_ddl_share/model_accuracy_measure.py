@@ -87,6 +87,8 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
 parser.add_argument('--dummy', action='store_true', help="use fake data to benchmark")
+# ddl interface related
+parser.add_argument("-if", "--iface", type=str, help="network device name", default="lo", required=False)
 # sampler related
 parser.add_argument("-sampler", "--sampler", choices=["default", "distaware", "shade", "graddist", "graddistbg", "dali"],
                         help="what sampler will be used")
@@ -99,6 +101,9 @@ best_acc1 = 0
 
 def main():
     args = parser.parse_args()
+
+    iface = args.iface
+    os.environ["GLOO_SOCKET_IFNAME"] = str(iface)
 
     if args.seed is not None:
         random.seed(args.seed)
