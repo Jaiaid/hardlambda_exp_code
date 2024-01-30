@@ -409,6 +409,7 @@ def validate(val_loader, model, criterion, args):
                     target = target.to('mps')
                     print("hi mps")
                 elif torch.cuda.is_available():
+                    images = images.cuda(args.gpu, non_blocking=True)
                     target = target.cuda(args.gpu, non_blocking=True)
                     print("hi cuda")
 
