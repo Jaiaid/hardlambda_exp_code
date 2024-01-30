@@ -122,12 +122,15 @@ def main():
 
     if torch.cuda.is_available():
         ngpus_per_node = torch.cuda.device_count()
-    else:
-        ngpus_per_node = 1
         # nccl does not work with single GPU
         # https://discuss.pytorch.org/t/ncclinvalidusage-of-torch-nn-parallel-distributeddataparallel/133183
         # https://discuss.ray.io/t/ray-train-parallelize-on-single-gpu/11483/2
-        args.dist_backend = "gloo"
+        if ngpus_per_node == 1:
+            args.dist_backend = "gloo"
+    else:
+        ngpus_per_node = 0
+        assert args.dist_backend != "nccl",\
+        "nccl backend does not work without GPU, see https://pytorch.org/docs/stable/distributed.html"
     if args.multiprocessing_distributed:
         # Since we have ngpus_per_node processes per node, the total world_size
         # needs to be adjusted accordingly
