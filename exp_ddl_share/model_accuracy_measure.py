@@ -75,7 +75,7 @@ parser.add_argument('--rank', default=-1, type=int,
                     help='node rank for distributed training')
 parser.add_argument('--dist-url', default='tcp://10.21.12.239:44144', type=str,
                     help='url used to set up distributed training')
-parser.add_argument('--dist-backend', default='nccl', type=str,
+parser.add_argument('--dist-backend', default='gloo', type=str,
                     help='distributed backend')
 parser.add_argument('--seed', default=None, type=int,
                     help='seed for initializing training. ')
@@ -286,9 +286,6 @@ def main_worker(gpu, ngpus_per_node, args):
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=args.world_size)
 
-    train_dataset = DatasetPipeline(dataset=dataset, batch_size=args.batch_size,
-                                       sampler=data_sampler, num_replicas=args.world_size)
-
     val_dataset = datasets.ImageFolder(
         valdir,
         transforms.Compose([
@@ -299,15 +296,16 @@ def main_worker(gpu, ngpus_per_node, args):
         ]))
 
     if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+        # train sampler is special the system we are working on
+        # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
         val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False, drop_last=True)
     else:
         train_sampler = None
         val_sampler = None
 
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
-        num_workers=args.workers, pin_memory=True, sampler=train_sampler)
+    # edited for custom data loading
+    train_loader = DatasetPipeline(dataset=dataset, batch_size=args.batch_size,
+                                       sampler=data_sampler, num_replicas=args.world_size)
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.batch_size, shuffle=False,
