@@ -87,6 +87,9 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
 parser.add_argument('--dummy', action='store_true', help="use fake data to benchmark")
+# sampler related
+parser.add_argument("-sampler", "--sampler", choices=["default", "distaware", "shade", "graddist", "graddistbg", "dali"],
+                        help="what sampler will be used")
 # for data movement service
 parser.add_argument("-ipm", "--ip_mover", type=str, help="data move service ip", default="lo", required=False)
 parser.add_argument("-portm", "--port_mover", type=str, help="data move service port", default="lo", required=False)
