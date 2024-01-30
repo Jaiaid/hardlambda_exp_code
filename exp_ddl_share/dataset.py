@@ -146,7 +146,7 @@ class DatasetPipeline():
         return self.dataloader._get_iterator()
     
     def __len__(self):
-        if sampler == "dali":
+        if self.sampler == "dali":
             return len(self.dataset)
         return len(self.dataloader)
     
