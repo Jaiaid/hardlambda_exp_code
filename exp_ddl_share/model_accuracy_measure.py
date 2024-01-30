@@ -322,7 +322,8 @@ def main_worker(gpu, ngpus_per_node, args):
 
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
-            train_sampler.set_epoch(epoch)
+            # custom dataloader
+            train_loader.set_epoch(epoch)
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, device, args)
