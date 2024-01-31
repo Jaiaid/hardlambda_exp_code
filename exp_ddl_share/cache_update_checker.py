@@ -64,7 +64,7 @@ def main():
 def main_worker(gpu, args):
     global best_acc1, data_mover
     args.gpu = gpu
-    
+
     iface = args.iface
     os.environ["GLOO_SOCKET_IFNAME"] = str(iface)
 
@@ -93,18 +93,17 @@ def main_worker(gpu, args):
                                        sampler=data_sampler, num_replicas=args.world_size)
 
 
-    if args.sampler == "graddistbg":
-        # try 10 times to connect
-        connection_refused_count = 0
-        while connection_refused_count < 10: 
-            try:
-                data_mover = DataMoverServiceInterfaceClient(args.ip_mover, args.port_mover)
-                break
-            except ConnectionError as e:
-                connection_refused_count += 1
-                print("connection establish attempt {0} failed".format(connection_refused_count))
-                # sleep for a second
-                time.sleep(1)
+    # try 10 times to connect
+    connection_refused_count = 0
+    while connection_refused_count < 10: 
+        try:
+            data_mover = DataMoverServiceInterfaceClient(args.ip_mover, args.port_mover)
+            break
+        except ConnectionError as e:
+            connection_refused_count += 1
+            print("connection establish attempt {0} failed".format(connection_refused_count))
+            # sleep for a second
+            time.sleep(1)
 
 
     # extract the image for 3 epoch
@@ -117,9 +116,8 @@ def main_worker(gpu, args):
             train_loader.set_epoch(epoch)
 
         for i, (images, target) in enumerate(train_loader):
-            if args.sampler == "graddistbg":
-                # data is read cache can be updated
-                data_mover.updatecache(i)
+            # data is read cache can be updated
+            data_mover.updatecache(i)
 
             # only one should do the saving
             if args.rank == 0:
@@ -129,9 +127,8 @@ def main_worker(gpu, args):
                     im.save(os.path.join("cache_data", "{0}.jpg".format(img_count)))
                     img_count  += 1
 
-    if args.sampler == "graddistbg":
-        data_mover.close()
-        data_mover_service.kill()
+    data_mover.close()
+    data_mover_service.kill()
 
 def train(train_loader, model, criterion, optimizer, epoch, device, args):
     global data_mover
