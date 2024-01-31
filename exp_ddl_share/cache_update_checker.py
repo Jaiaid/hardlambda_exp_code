@@ -111,9 +111,8 @@ def main_worker(gpu, args):
     # if cache update is correct all data should be seen in three epoch
     img_count = 0
     for epoch in range(3):
-        if args.distributed:
-            # custom dataloader
-            train_loader.set_epoch(epoch)
+        # custom dataloader
+        train_loader.set_epoch(epoch)
 
         for i, (images, target) in enumerate(train_loader):
             # data is read cache can be updated
