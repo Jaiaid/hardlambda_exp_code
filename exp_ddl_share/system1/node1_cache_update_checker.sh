@@ -6,4 +6,4 @@ ROOT_DIR=..
 # numa node 0
 time numactl --cpunodebind=0 --membind=0 python3 $ROOT_DIR/cache_update_checker.py -b 16 --dist-url tcp://10.21.12.239:44144 -if eno2 --world-size 4 --rank 0 -ipm 127.0.0.1 -portm 50524 > /dev/null  &
 # numa node 1
-time numactl --cpunodebind=1 --membind=1 python3 $ROOT_DIR/cache_update_checker.py -b 16 --dist-url tcp://10.21.12.239:44144 -if eno2--world-size 4 --rank 1 -ipm 127.0.0.1 -portm 50525 > /dev/null
+time numactl --cpunodebind=1 --membind=1 python3 $ROOT_DIR/cache_update_checker.py -b 16 --dist-url tcp://10.21.12.239:44144 -if eno2 --world-size 4 --rank 1 -ipm 127.0.0.1 -portm 50525 > /dev/null
