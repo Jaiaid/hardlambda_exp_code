@@ -122,7 +122,7 @@ def main_worker(gpu, args):
             if args.rank == 0:
                 # save images to cache_data_folder
                 for j in range(args.batch_size):
-                    im = PIL.Image.fromarray(images[j])
+                    im = PIL.Image.fromarray(images[j].numpy())
                     im.save(os.path.join("cache_data", "{0}.jpg".format(img_count)))
                     img_count  += 1
 
