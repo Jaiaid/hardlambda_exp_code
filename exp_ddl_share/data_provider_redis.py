@@ -27,7 +27,6 @@ class SharedDataRedis():
         elif dataset == "imagenet":
             transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
-                torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to mean 0 and standard deviation 1
             ])
 
             self.train_dataset = torchvision.datasets.ImageNet(root=dataroot, transform=transform)
