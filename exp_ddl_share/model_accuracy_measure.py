@@ -32,6 +32,8 @@ from DataMovementService import DataMoverServiceInterfaceClient
 
 # local cluster environment specific
 IMAGENET_DATA_DIR = "/sandbox1/data/imagenet/2017"
+# proposed method related variable
+data_mover = None
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -149,7 +151,7 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
-    global best_acc1
+    global best_acc1, data_mover
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -320,6 +322,19 @@ def main_worker(gpu, ngpus_per_node, args):
         validate(val_loader, model, criterion, args)
         return
 
+    if args.sampler == "graddistbg":
+        # try 10 times to connect
+        connection_refused_count = 0
+        while connection_refused_count < 10: 
+            try:
+                data_mover = DataMoverServiceInterfaceClient(args.ip_mover, args.port_mover)
+                break
+            except ConnectionError as e:
+                connection_refused_count += 1
+                print("connection establish attempt {0} failed".format(connection_refused_count))
+                # sleep for a second
+                time.sleep(1)
+
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             # custom dataloader
@@ -348,8 +363,12 @@ def main_worker(gpu, ngpus_per_node, args):
                 'scheduler' : scheduler.state_dict()
             }, is_best)
 
+    if args.sampler == "graddistbg":
+        data_mover.close()
+        data_mover_service.kill()
 
 def train(train_loader, model, criterion, optimizer, epoch, device, args):
+    global data_mover
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
@@ -367,6 +386,10 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args):
     for i, (images, target) in enumerate(train_loader):
         # measure data loading time
         data_time.update(time.time() - end)
+
+        if args.sampler == "graddistbg":
+            # data is read cache can be updated
+            data_mover.updatecache(i)
 
         # move data to the same device as model
         images = images.to(device, non_blocking=True)
