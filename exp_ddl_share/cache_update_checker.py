@@ -9,7 +9,7 @@ import PIL
 
 # import torch
 # import torch.backends.cudnn as cudnn
-# import torch.distributed as dist
+import torch.distributed as dist
 # import torch.multiprocessing as mp
 # import torch.nn as nn
 # import torch.nn.parallel
@@ -44,6 +44,10 @@ parser.add_argument('--rank', default=-1, type=int,
                     help='node rank for distributed training')
 parser.add_argument('--gpu', default=None, type=int,
                     help='GPU id to use.')
+parser.add_argument('--dist-url', default='tcp://10.21.12.239:44144', type=str,
+                    help='url used to set up distributed training')
+# ddl interface related
+parser.add_argument("-if", "--iface", type=str, help="network device name", default="lo", required=False)
 # for data movement service
 parser.add_argument("-ipm", "--ip_mover", type=str, help="data move service ip", default="lo", required=False)
 parser.add_argument("-portm", "--port_mover", type=str, help="data move service port", default="lo", required=False)
@@ -60,6 +64,12 @@ def main():
 def main_worker(gpu, args):
     global best_acc1, data_mover
     args.gpu = gpu
+    
+    iface = args.iface
+    os.environ["GLOO_SOCKET_IFNAME"] = str(iface)
+
+    dist.init_process_group(backend="gloo", init_method=args.dist_url,
+                                world_size=args.world_size, rank=args.rank)
 
     # creating the custom data loading mechanism
     print("creating data pipeline")
