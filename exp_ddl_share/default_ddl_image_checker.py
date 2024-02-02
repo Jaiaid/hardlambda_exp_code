@@ -90,9 +90,6 @@ def main_worker(gpu, args):
         train_loader.set_epoch(epoch)
 
         for i, (images, target) in enumerate(train_loader):
-            # data is read cache can be updated
-            data_mover.updatecache(i)
-
             # only one should do the saving
             if args.rank == 0:
                 # save images to cache_data_folder
