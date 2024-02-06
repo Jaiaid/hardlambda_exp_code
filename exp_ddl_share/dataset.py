@@ -71,8 +71,13 @@ class SharedDistRedisPool(Dataset):
         self.nb_samples += int.from_bytes(self.redis_client3.get("length"), 'little')
 
         self.redis_query_stat = { '10.21.12.222:26379': 0, '10.21.12.239:26379': 0, '10.21.12.239:26380': 0}
+        self.index_queried_stat = {}
     
     def __getitem__(self, index):
+        if index not in self.index_queried_stat:
+            self.index_queried_stat[index] = 0
+        self.index_queried_stat[index] += 1
+
         if index > 2*self.nb_samples/3:
             index -= int(2*self.nb_samples/3)
             select_redis_client = self.redis_client1
@@ -85,7 +90,6 @@ class SharedDistRedisPool(Dataset):
             select_redis_client = self.redis_client3
             self.redis_query_stat['10.21.12.239:26380'] += 1
         
-
         deser_x = select_redis_client.get("data" + str(index))
         deser_y = select_redis_client.get("label" + str(index))
         x = np.frombuffer(deser_x, dtype=np.float32)
@@ -100,6 +104,9 @@ class SharedDistRedisPool(Dataset):
 
     def get_query_stat(self):
         return self.redis_query_stat
+    
+    def get_index_query_stat(self):
+        return self.index_queried_stat
 
 class PyTorchDaliPipeline(Pipeline):
     def __init__(self, pytorch_dataset, batch_size, num_threads, device_id):
