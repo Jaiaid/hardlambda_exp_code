@@ -344,24 +344,24 @@ def main_worker(gpu, ngpus_per_node, args):
         train(train_loader, model, criterion, optimizer, epoch, device, args)
 
         # evaluate on validation set
-        # acc1 = validate(val_loader, model, criterion, args)
+        acc1 = validate(val_loader, model, criterion, args)
         
         scheduler.step()
         
         # remember best acc@1 and save checkpoint
-        # is_best = acc1 > best_acc1
-        # best_acc1 = max(acc1, best_acc1)
+        is_best = acc1 > best_acc1
+        best_acc1 = max(acc1, best_acc1)
 
-        # if not args.multiprocessing_distributed or (args.multiprocessing_distributed
-        #         and args.rank % ngpus_per_node == 0):
-        #     save_checkpoint({
-        #         'epoch': epoch + 1,
-        #         'arch': args.arch,
-        #         'state_dict': model.state_dict(),
-        #         'best_acc1': best_acc1,
-        #         'optimizer' : optimizer.state_dict(),
-        #         'scheduler' : scheduler.state_dict()
-        #     }, is_best)
+        if not args.multiprocessing_distributed or (args.multiprocessing_distributed
+                and args.rank % ngpus_per_node == 0):
+            save_checkpoint({
+                'epoch': epoch + 1,
+                'arch': args.arch,
+                'state_dict': model.state_dict(),
+                'best_acc1': best_acc1,
+                'optimizer' : optimizer.state_dict(),
+                'scheduler' : scheduler.state_dict()
+            }, is_best)
     index_query_stat = dataset.get_index_query_stat()
     with open("rank{0}_{1}_queried_idx.log".format(args.rank, args.sampler), "w") as fin:
         for idx in index_query_stat:
@@ -454,6 +454,8 @@ def validate(val_loader, model, criterion, args):
 
                 if i % args.print_freq == 0:
                     progress.display(i + 1)
+                if i >= 5000:
+                    break
 
     batch_time = AverageMeter('Time', ':6.3f', Summary.NONE)
     losses = AverageMeter('Loss', ':.4e', Summary.NONE)
