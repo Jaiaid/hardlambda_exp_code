@@ -5,6 +5,7 @@ import torch.distributed as dist
 from torch.utils.data import Dataset
 import time
 import math
+import random
 
 T_co = TypeVar('T_co', covariant=True)
 
@@ -237,7 +238,8 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
 
         indices = list(range(self.rank * num_batch_per_replica * self.batch_size,
                              self.rank * num_batch_per_replica * self.batch_size + end_idx * self.batch_size))
-        print(len(indices))
+        random.seed(self.rank + self.epoch)
+        random.shuffle(indices)
         for index in indices:
             batch_no = int(index/self.batch_size)
             self.data_batch_read_freq[batch_no] += 1
