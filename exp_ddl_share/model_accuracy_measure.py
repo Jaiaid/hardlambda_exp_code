@@ -454,7 +454,7 @@ def validate(val_loader, model, criterion, args):
 
                 if i % args.print_freq == 0:
                     progress.display(i + 1)
-                if i >= 5000:
+                if i >= 312:
                     break
 
     batch_time = AverageMeter('Time', ':6.3f', Summary.NONE)
