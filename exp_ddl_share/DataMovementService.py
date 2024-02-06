@@ -88,6 +88,14 @@ class DataMoverServiceInterfaceClient():
         self.connection_socket.send(int.to_bytes(batch_no, length=4, byteorder="little"))
         
     def close(self):
+        # this check is done to confirm final update is done
+        # TODO
+        # create a pending status and pending_expected message attribute
+        # don't execute any next status until pending is cleared with expected message
+        if not self.first_time:
+            cmd = ""
+            while cmd[0:4] != "done":
+                cmd = self.connection_socket.recv(4).decode("utf-8")
         # send the cmd
         self.connection_socket.send(
             DataMoverServiceInterfaceClient.convert_to_cmdbuffer("exit"))
