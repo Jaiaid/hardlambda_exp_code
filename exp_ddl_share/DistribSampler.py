@@ -166,7 +166,6 @@ class GradualDistAwareDistributedSampler(DistributedSampler):
                         self.batch_dist_ranking_list[idx] * self.batch_size + self.batch_size
                     )
                 )
-            print(len(indices))
         else:
             # for first batch work like default
             # from the 2nd batch we will have some information on data access latency
@@ -175,7 +174,6 @@ class GradualDistAwareDistributedSampler(DistributedSampler):
             for index in iterator:
                 batch_no = int(index/self.batch_size)
                 self.data_batch_read_freq[batch_no] += 1
-            print()
             return iter_copy
 
         # record the data's access frequency
@@ -239,11 +237,11 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
 
         indices = list(range(self.rank * num_batch_per_replica * self.batch_size,
                              self.rank * num_batch_per_replica * self.batch_size + end_idx * self.batch_size))
-
+        print(len(indices))
         for index in indices:
             batch_no = int(index/self.batch_size)
             self.data_batch_read_freq[batch_no] += 1
-
+        
         return iter(indices)
 
     def set_batch_time(self, batch_no:int, read_time:float):
