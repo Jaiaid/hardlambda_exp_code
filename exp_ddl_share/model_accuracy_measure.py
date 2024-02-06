@@ -363,7 +363,7 @@ def main_worker(gpu, ngpus_per_node, args):
         #         'scheduler' : scheduler.state_dict()
         #     }, is_best)
     index_query_stat = dataset.get_index_query_stat()
-    with open("rank{0}_{1}_queried_idx.log".format(args.rank, args.sampler)) as fin:
+    with open("rank{0}_{1}_queried_idx.log".format(args.rank, args.sampler, "w")) as fin:
         for idx in index_query_stat:
             fin.write("{0} {1}\n".format(idx, index_query_stat[idx]))
 
