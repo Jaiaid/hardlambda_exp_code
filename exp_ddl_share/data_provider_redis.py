@@ -3,10 +3,14 @@ import psutil
 import redis
 import subprocess
 import os
+import random
 import torch
 import torchvision
 import argparse
 # from torch.utils.data import Dataset, DataLoader
+
+CACHESIZE_SAMPLE_COUNT = 10000
+SEED = 3400
 
 class SharedDataRedis():
     def __init__(self, port, dataset, dataroot):
@@ -36,8 +40,12 @@ class SharedDataRedis():
         redis_port = port  # Change this to your Redis server's port
         self.redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
         
+        random.seed(SEED)
+        idx_used = list(range(0, CACHESIZE_SAMPLE_COUNT))
+        random.shuffle(idx_used)
+
         for i, data in enumerate(self.train_dataset):
-            if dataset == "imagenet" and i > 10000:
+            if dataset == "imagenet" and i >= CACHESIZE_SAMPLE_COUNT:
                 break
             # Serialize the tensor to binary
             input, label= data
@@ -47,12 +55,12 @@ class SharedDataRedis():
                     torch.reshape(input, tuple(shape)), size=(224, 224), mode='bilinear', align_corners=False
                 )
             serialized_input_tensor = input.numpy().tobytes()
-            redis_key = str(i) 
+            redis_key = str(idx_used[i]) 
             self.redis_client.set("data" + redis_key, serialized_input_tensor)
             self.redis_client.set("label" + redis_key, label.to_bytes(4, 'little'))
         # store length
         if dataset == "imagenet":
-            self.redis_client.set("length", int(10000).to_bytes(4, 'little'))
+            self.redis_client.set("length", int(CACHESIZE_SAMPLE_COUNT).to_bytes(4, 'little'))
         else:
             self.redis_client.set("length", len(self.train_dataset).to_bytes(4, 'little'))
 
