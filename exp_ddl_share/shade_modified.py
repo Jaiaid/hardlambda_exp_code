@@ -109,10 +109,10 @@ class ShadeDataset(Dataset):
             sample = torch.from_numpy(x.reshape(3,dim_x,dim_x))
         else:
             transformed_index = index
-            if index > 2*self.nb_samples/3:
+            if index >= 2*self.nb_samples/3:
                 transformed_index -= int(2*self.nb_samples/3)
                 select_redis_client = self.redis_client3
-            elif index > self.nb_samples/3:
+            elif index >= self.nb_samples/3:
                 transformed_index -= int(self.nb_samples/3)
                 select_redis_client = self.redis_client2
             else:
@@ -155,10 +155,10 @@ class ShadeDataset(Dataset):
             tuple: (sample, target, index) where target is class_index of the target class.
         """
 
-        if index > 2*self.nb_samples/3:
+        if index >= 2*self.nb_samples/3:
             index -= int(2*self.nb_samples/3)
             select_redis_client = self.redis_client3
-        elif index > self.nb_samples/3:
+        elif index >= self.nb_samples/3:
             index -= int(self.nb_samples/3)
             select_redis_client = self.redis_client2
         else:
