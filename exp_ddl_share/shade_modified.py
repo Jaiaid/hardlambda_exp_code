@@ -82,7 +82,13 @@ class ShadeDataset(Dataset):
         self.PQ = heapdict.heapdict()
         self.ghost_cache = heapdict.heapdict()
         self.key_counter = 0
-        
+        # to keep track who is queried what amount
+        self.index_queried_stat = {}
+    
+    # to get stat on which indexed queried what amount
+    def get_index_query_stat(self):
+        return self.index_queried_stat
+    
     def random_func(self):
         return 0.6858089651836363
 
@@ -154,6 +160,10 @@ class ShadeDataset(Dataset):
         Returns:
             tuple: (sample, target, index) where target is class_index of the target class.
         """
+
+        if index not in self.index_queried_stat:
+            self.index_queried_stat[index] = 0
+        self.index_queried_stat[index] += 1
 
         if index >= 2*self.nb_samples/3:
             index -= int(2*self.nb_samples/3)
