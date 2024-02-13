@@ -10,7 +10,7 @@ T_co = TypeVar('T_co', covariant=True)
 
 from torch.utils.data.distributed import DistributedSampler
 
-class DefaultDistributedSampler():
+class DefaultDistributedSampler(DistributedSampler):
     r"""Sampler that restricts data loading to a subset of the dataset.
 
     
@@ -19,30 +19,25 @@ class DefaultDistributedSampler():
     def __init__(self, dataset: Dataset, num_replicas: Optional[int] = None,
                  rank: Optional[int] = None, shuffle: bool = True,
                  seed: int = 0, drop_last: bool = False, batch_size: int = 16) -> None:
-        #super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
+        super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
         self.batch_size = batch_size
-        self.total_size = len(dataset)
-        self.num_samples = len(dataset)
-        self.dataset= dataset
         self.data_batch_read_latency = [0] * int(self.num_samples*num_replicas)
         self.data_batch_read_freq = [0] * int(self.num_samples*num_replicas)
-        #self.total_size = len(dataset)
-        #self.num_samples = len(dataset)
 
     def __iter__(self) -> Iterator[T_co]:
-        #iterator = self.dataset.__iter__()
-        #iter_copy = copy.deepcopy(iterator)
-        #for index in iterator:
-        #    batch_no = int(index/self.batch_size)
-            #self.data_batch_read_freq[batch_no] += 1
-        return self.dataset
+        iterator = super().__iter__()
+        iter_copy = copy.deepcopy(iterator)
+        for index in iterator:
+            batch_no = int(index/self.batch_size)
+            self.data_batch_read_freq[batch_no] += 1
+        return iter_copy
 
     def set_batch_time(self, batch_no:int, read_time:float):
         pass
 
     def dump_data_read_freq(self, output_file_path):
         r"""dump the data access freuqncy in text to given output file path
-
+        
         Args:
             output_file_path: output file where the data will be dumped
         """
@@ -50,7 +45,6 @@ class DefaultDistributedSampler():
             fout.write("batch,frequency\n")
             for batch_no, read_freq in enumerate(self.data_batch_read_freq):
                 fout.write(str(batch_no) + "," + str(read_freq) + "\n")
-
 
 
 class DistAwareDistributedSampler(DistributedSampler):
