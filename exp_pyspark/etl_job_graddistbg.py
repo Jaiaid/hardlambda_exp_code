@@ -3,8 +3,8 @@ import subprocess
 import os
 from pyspark.sql import SparkSession
 
-from dataset import SharedRedisPool, SharedDistRedisPool, DatasetPipeline
-from DistribSampler import DistAwareDistributedSampler, DefaultDistributedSampler, GradualDistAwareDistributedSampler, GradualDistAwareDistributedSamplerBG
+from dataset import SharedDistRedisPool, DatasetPipeline
+from DistribSampler import DefaultDistributedSampler, GradualDistAwareDistributedSamplerBG
 from shade_modified import ShadeDataset, ShadeSampler
 from DataMovementService import DataMoverServiceInterfaceClient
 
@@ -61,7 +61,8 @@ def main():
 
     try:
         # Generate a large dataset
-        large_dataset = spark.sparkContext.parallelize(dataset_pipeline, numSlices=2)#generate_large_dataset(spark)
+        # number of slices increased to avoid data serilization size <2G constraint for 30G data
+        large_dataset = spark.sparkContext.parallelize(dataset_pipeline, numSlices=16)#generate_large_dataset(spark)
 
         # Perform some transformations to put pressure on memory
         processed_data = (
@@ -80,6 +81,9 @@ def main():
     finally:
         # Stop the Spark session
         spark.stop()
+        # kill the data mover service
+        data_mover.close()
+        data_mover_service.kill()
 
 if __name__ == "__main__":
     main()
