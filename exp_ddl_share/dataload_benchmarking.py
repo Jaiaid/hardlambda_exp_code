@@ -3,7 +3,7 @@
 import argparse
 import os
 import random
-import shutil
+import math
 import time
 import subprocess
 import warnings
@@ -98,59 +98,67 @@ def main():
     for network_arch in NETWORK_LIST:
         benchmark_data_dict[network_arch] = {}
         for sampler in SAMPLER_LIST:
-            args.sampler = sampler
-            benchmark_data_dict[network_arch][sampler] = []
-            if args.seed is not None:
-                random.seed(args.seed)
-                torch.manual_seed(args.seed)
-                cudnn.deterministic = True
-                cudnn.benchmark = False
-                warnings.warn('You have chosen to seed training. '
-                            'This will turn on the CUDNN deterministic setting, '
-                            'which can slow down your training considerably! '
-                            'You may see unexpected behavior when restarting '
-                            'from checkpoints.')
+            print("benchmarking for network arch: {0}, sampler: {1}".format(network_arch, sampler))
+            try:
+                args.sampler = sampler
+                benchmark_data_dict[network_arch][sampler] = [math.nan, math.nan, math.nan]
+                if args.seed is not None:
+                    random.seed(args.seed)
+                    torch.manual_seed(args.seed)
+                    cudnn.deterministic = True
+                    cudnn.benchmark = False
+                    warnings.warn('You have chosen to seed training. '
+                                'This will turn on the CUDNN deterministic setting, '
+                                'which can slow down your training considerably! '
+                                'You may see unexpected behavior when restarting '
+                                'from checkpoints.')
 
-            if args.gpu is not None:
-                warnings.warn('You have chosen a specific GPU. This will completely '
-                            'disable data parallelism.')
+                if args.gpu is not None:
+                    warnings.warn('You have chosen a specific GPU. This will completely '
+                                'disable data parallelism.')
 
-            if args.dist_url == "env://" and args.world_size == -1:
-                args.world_size = int(os.environ["WORLD_SIZE"])
+                if args.dist_url == "env://" and args.world_size == -1:
+                    args.world_size = int(os.environ["WORLD_SIZE"])
 
-            args.distributed = args.world_size > 1 or args.multiprocessing_distributed
+                args.distributed = args.world_size > 1 or args.multiprocessing_distributed
 
-            if torch.cuda.is_available():
-                ngpus_per_node = torch.cuda.device_count()
-                # nccl does not work with single GPU
-                # https://discuss.pytorch.org/t/ncclinvalidusage-of-torch-nn-parallel-distributeddataparallel/133183
-                # https://discuss.ray.io/t/ray-train-parallelize-on-single-gpu/11483/2
-                if ngpus_per_node == 1:
-                    args.dist_backend = "gloo"
-            else:
-                ngpus_per_node = 0
-                assert args.dist_backend != "nccl",\
-                "nccl backend does not work without GPU, see https://pytorch.org/docs/stable/distributed.html"
-            if args.multiprocessing_distributed:
-                # Since we have ngpus_per_node processes per node, the total world_size
-                # needs to be adjusted accordingly
-                args.world_size = ngpus_per_node * args.world_size
-                # Use torch.multiprocessing.spawn to launch distributed processes: the
-                # main_worker process function
-                mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args, network_arch))
-            else:
-                # Simply call main_worker function
-                main_worker(args.gpu, ngpus_per_node, args, network_arch)
+                if torch.cuda.is_available():
+                    ngpus_per_node = torch.cuda.device_count()
+                    # nccl does not work with single GPU
+                    # https://discuss.pytorch.org/t/ncclinvalidusage-of-torch-nn-parallel-distributeddataparallel/133183
+                    # https://discuss.ray.io/t/ray-train-parallelize-on-single-gpu/11483/2
+                    if ngpus_per_node == 1:
+                        args.dist_backend = "gloo"
+                else:
+                    ngpus_per_node = 0
+                    assert args.dist_backend != "nccl",\
+                    "nccl backend does not work without GPU, see https://pytorch.org/docs/stable/distributed.html"
+                if args.multiprocessing_distributed:
+                    # Since we have ngpus_per_node processes per node, the total world_size
+                    # needs to be adjusted accordingly
+                    args.world_size = ngpus_per_node * args.world_size
+                    # Use torch.multiprocessing.spawn to launch distributed processes: the
+                    # main_worker process function
+                    mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args, network_arch))
+                else:
+                    # Simply call main_worker function
+                    main_worker(args.gpu, ngpus_per_node, args, network_arch)
+            except Exception as e:
+                print(e)
+                print("Benchmarking for network: {0} and sampler: {1} could not be done".format(network_arch, sampler))
+                
+
     # dump the data
     # only rank 0 process will do that
     if args.rank == 0:
         with open("benchmark_iteration_step.tsv", "w") as fout:
-            fout.write("Network Arch\tSampler\tdataload time\tdata process time\n")
+            fout.write("Network Arch\tSampler\tdataload time\tdata process time\texec time\n")
             for network_arch in NETWORK_LIST:
                 for sampler in SAMPLER_LIST:
                     datatime = benchmark_data_dict[network_arch][sampler][0]
                     processtime = benchmark_data_dict[network_arch][sampler][1]
-                    fout.write("{0}\t{1}\t{2}\t{3}\n".format(network_arch, sampler, datatime, processtime))
+                    exec_time = benchmark_data_dict[network_arch][sampler][2]
+                    fout.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(network_arch, sampler, datatime, processtime, exec_time))
 
 def main_worker(gpu, ngpus_per_node, args, arch):
     global data_mover, benchmark_data_dict
@@ -294,12 +302,14 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         data_mover.close()
         data_mover_service.kill()
 
-    print("network {0} took {1}s".format(arch, time.time() - start_time))
+    exec_time = time.time() - start_time
+    print("network {0} took {1}s".format(arch, exec_time))
 
     process_time.all_reduce()
     data_time.all_reduce()
-    benchmark_data_dict[arch][args.sampler] = [data_time, process_time]
+    benchmark_data_dict[arch][args.sampler] = [data_time, process_time, exec_time]
 
+    dist.barrier()
     dist.destroy_process_group()
 
 def train(train_loader, model, criterion, optimizer, epoch, device, args, process_time, data_time):
@@ -374,7 +384,7 @@ class AverageMeter(object):
         self.avg = self.sum / self.count
 
     def __str__(self):
-        return self.avg
+        return str(self.avg)
 
 class ProgressMeter(object):
     def __init__(self, num_batches, meters, prefix=""):
@@ -386,7 +396,7 @@ class ProgressMeter(object):
         entries = [self.prefix + self.batch_fmtstr.format(batch)]
         entries += [str(meter) for meter in self.meters]
         print('\t'.join(entries))
-        
+        benchmark_data_dict[network_arch][sampler][1]
     def display_summary(self):
         entries = [" *"]
         entries += [meter.summary() for meter in self.meters]
