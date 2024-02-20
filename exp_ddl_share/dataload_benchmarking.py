@@ -204,7 +204,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         model = model.to(device)
     else:
         # DataParallel will divide and allocate batch_size to all available GPUs
-        if args.arch.startswith('alexnet') or args.arch.startswith('vgg'):
+        if arch.startswith('alexnet') or arch.startswith('vgg'):
             model.features = torch.nn.DataParallel(model.features)
             model.cuda()
         else:
@@ -280,7 +280,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     data_time = AverageMeter()
 
     start_time = time.time()
-    for epoch in range(args.start_epoch, args.epochs):
+    for epoch in range(args.epochs):
         if args.distributed:
             # custom dataloader
             train_loader.set_epoch(epoch)
