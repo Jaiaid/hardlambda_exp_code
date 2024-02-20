@@ -96,6 +96,7 @@ def main():
     for network_arch in NETWORK_LIST:
         for sampler in SAMPLER_LIST:
             args.sampler = sampler
+            benchmark_data_dict[network_arch][sampler] = []
             if args.seed is not None:
                 random.seed(args.seed)
                 torch.manual_seed(args.seed)
@@ -137,7 +138,16 @@ def main():
             else:
                 # Simply call main_worker function
                 main_worker(args.gpu, ngpus_per_node, args, network_arch)
-
+    # dump the data
+    # only rank 0 process will do that
+    if args.rank == 0:
+        with open("benchmark_iteration_step.tsv", "w") as fout:
+            fout.write("Network Arch\tSampler\tdataload time\tdata process time\n")
+            for network_arch in NETWORK_LIST:
+                for sampler in SAMPLER_LIST:
+                    datatime = benchmark_data_dict[network_arch][sampler][0]
+                    processtime = benchmark_data_dict[network_arch][sampler][1]
+                    fout.write("{0}\t{1}\t{2}\t{3}\n".format(network_arch, sampler, datatime, processtime))
 
 def main_worker(gpu, ngpus_per_node, args, arch):
     global data_mover, benchmark_data_dict
@@ -217,8 +227,6 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     scheduler = StepLR(optimizer, step_size=30, gamma=0.1)
 
     # Data loading code
-
-    
     # creating the custom data loading mechanism
     print("creating data pipeline")
     # Define the transformations for data preprocessing
@@ -287,7 +295,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
 
     process_time.all_reduce()
     data_time.all_reduce()
-    benchmark_data_dict[arch] = [data_time, process_time]
+    benchmark_data_dict[arch][args.sampler] = [data_time, process_time]
 
     dist.destroy_process_group()
 
