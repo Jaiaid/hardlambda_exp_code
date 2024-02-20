@@ -144,7 +144,7 @@ class ShadeDataset(Dataset):
                             self.key_id_map.delete(evicted_item[0])
                         keys_cnt-=1
                 except:
-                    print("Could not evict item or PQ was empty.")
+                    # print("Could not evict item or PQ was empty.")
                     pass
 
             if self.cache_data and keys_cnt < self.cache_portion:
