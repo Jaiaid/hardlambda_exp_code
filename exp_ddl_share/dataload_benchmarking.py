@@ -287,6 +287,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
 
         process_time = AverageMeter()
         data_time = AverageMeter()
+        exec_time = AverageMeter()
 
         start_time = time.time()
         for epoch in range(args.epochs):
@@ -303,11 +304,12 @@ def main_worker(gpu, ngpus_per_node, args, arch):
             data_mover.close()
             data_mover_service.kill()
 
-        exec_time = time.time() - start_time
-        print("network {0} took {1}s".format(arch, exec_time))
+        exec_time.update(time.time() - start_time)
+        print("network {0} took {1}s".format(arch, str(exec_time)))
 
         process_time.all_reduce()
         data_time.all_reduce()
+        exec_time.all_reduce()
         benchmark_data_dict[arch][args.sampler] = [data_time, process_time, exec_time]
 
         dist.barrier()
@@ -315,6 +317,11 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     except Exception as e:
         dist.barrier()
         dist.destroy_process_group()
+    
+        if args.sampler == "graddistbg":
+            data_mover.close()
+            data_mover_service.kill()
+
         raise e
 
 def train(train_loader, model, criterion, optimizer, epoch, device, args, process_time, data_time):
