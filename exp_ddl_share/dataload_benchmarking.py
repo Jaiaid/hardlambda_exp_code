@@ -82,7 +82,7 @@ parser.add_argument('--dummy', action='store_true', help="use fake data to bench
 # ddl interface related
 parser.add_argument("-if", "--iface", type=str, help="network device name", default="lo", required=False)
 # sampler related
-parser.add_argument("-sampler", "--sampler", default="default", choices=["default", "distaware", "shade", "graddist", "graddistbg", "dali"],
+parser.add_argument("-sampler", "--sampler", default="default", required=False, choices=["default", "distaware", "shade", "graddist", "graddistbg", "dali"],
                         help="what sampler will be used")
 # for data movement service
 parser.add_argument("-ipm", "--ip_mover", type=str, help="data move service ip", default="lo", required=False)
