@@ -258,8 +258,8 @@ def main_worker(gpu, ngpus_per_node, args, arch):
             # starting the background data mover service
             data_mover_service = subprocess.Popen(
                 """python3 {2}/DataMovementService.py --seqno {0}
-                -bs 16 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(
-                    args.rank if args.rank < 3 else 2, args.port_mover, os.path.dirname(os.path.abspath(__file__))).split()
+                -bs {3} -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(
+                    args.rank if args.rank < 3 else 2, args.port_mover, os.path.dirname(os.path.abspath(__file__)), args.batch_size).split()
             )
             # check if running
             if data_mover_service.poll() is None:
