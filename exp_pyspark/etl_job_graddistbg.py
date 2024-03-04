@@ -1,6 +1,7 @@
 import time
 import subprocess
 import os
+import numpy as np
 from pyspark.sql import SparkSession
 
 from dataset import SharedDistRedisPool, DatasetPipeline
@@ -24,12 +25,12 @@ def main():
     rank = 0
     dataset = SharedDistRedisPool()
     data_sampler = GradualDistAwareDistributedSamplerBG(
-        dataset=dataset, num_replicas=2, batch_size=16)
+        dataset=dataset, num_replicas=1, batch_size=2)
     data_sampler.set_rank(rank=0)
     # starting the background data mover service
     data_mover_service = subprocess.Popen(
         """python3 {2}/DataMovementService.py --seqno {0}
-        -bs 16 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(
+        -bs 2 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(
             rank if rank < 3 else 2, 50524, os.path.dirname(os.path.abspath(__file__))).split()
     )
     # check if running
@@ -56,28 +57,41 @@ def main():
         print("data movement service client interface is opened")
 
     # create the pipeline from sampler
-    dataset_pipeline = DatasetPipeline(dataset=dataset, batch_size=16,
-                                       sampler=data_sampler, num_replicas=2)
+    dataset_pipeline = DatasetPipeline(dataset=dataset, batch_size=2,
+                                       sampler=data_sampler, num_replicas=1)
 
+    rdd_creation_timelist = []
+    start_time = time.time()
     try:
         # Generate a large dataset
         # number of slices increased to avoid data serilization size <2G constraint for 30G data
-        large_dataset = spark.sparkContext.parallelize(dataset_pipeline, numSlices=16)#generate_large_dataset(spark)
+        for i in range(20):
+            rdd_start_time = time.time()
+            large_dataset = spark.sparkContext.parallelize(dataset_pipeline, numSlices=32) #generate_large_dataset(spark)
+            large_dataset.persist()
+            rdd_creation_timelist.append(time.time() - rdd_start_time)
+#        print("RDD size: {0}".format(large_dataset.count()))
+
+#        print(large_dataset.count())
+#        print(large_dataset.first())
 
         # Perform some transformations to put pressure on memory
-        processed_data = (
-            large_dataset
-            .map(lambda x: x/255.0)  # Transform data
-            .groupByKey()  # Introduce shuffling operation
-            .mapValues(lambda values: sum(values))  # Another transformation
-        )
+            processed_data = (
+                large_dataset
+#            .map(lambda x: x[0]/255.0)  # Transform data
+#            .groupByKey()  # Introduce shuffling operation
+#            .mapValues(lambda values: sum(values))  # Another transformation
+            )
+            large_dataset.unpersist()
+
 
         # Trigger an action to materialize the results and put pressure on memory
-        result = processed_data.collect()
+#        result = processed_data.collect()
 
         # Print the first few results
-        print(result[:10])
-
+        #print(result[:10])
+#        print("data processing took {0}s".format(time.time() - start_time))
+        print("rdd creation timelist {0}".format(rdd_creation_timelist))
     finally:
         # Stop the Spark session
         spark.stop()
@@ -87,4 +101,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
