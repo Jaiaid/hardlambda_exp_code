@@ -27,7 +27,7 @@ def main():
 
     dataset = SharedDistRedisPool()
     data_sampler = GradualDistAwareDistributedSamplerBG(
-        dataset=dataset, num_replicas=1, batch_size=2, rank=2)
+        dataset=dataset, num_replicas=1, batch_size=2, rank=2, ip_mover="127.0.0.1", port_mover=50524)
     data_sampler.set_rank(rank=2)
     
     # create the pipeline from sampler
