@@ -44,34 +44,21 @@ def main():
             large_dataset = spark.sparkContext.parallelize(dataset_pipeline, numSlices=32) #generate_large_dataset(spark)
             large_dataset.persist()
             rdd_creation_timelist.append(time.time() - rdd_start_time)
-#        print("RDD size: {0}".format(large_dataset.count()))
-
-#        print(large_dataset.count())
-#        print(large_dataset.first())
+        print("RDD size: {0}".format(large_dataset.count()))
 
         # Perform some transformations to put pressure on memory
-            processed_data = (
-                large_dataset
+            # processed_data = (
+            #     large_dataset
 #            .map(lambda x: x[0]/255.0)  # Transform data
 #            .groupByKey()  # Introduce shuffling operation
 #            .mapValues(lambda values: sum(values))  # Another transformation
-            )
-            large_dataset.unpersist()
+            # )
+            # large_dataset.unpersist()
 
-
-        # Trigger an action to materialize the results and put pressure on memory
-#        result = processed_data.collect()
-
-        # Print the first few results
-        #print(result[:10])
-#        print("data processing took {0}s".format(time.time() - start_time))
         print("rdd creation timelist {0}".format(rdd_creation_timelist))
     finally:
         # Stop the Spark session
         spark.stop()
-        # kill the data mover service
-        data_mover.close()
-        data_mover_service.kill()
 
 if __name__ == "__main__":
     main()
