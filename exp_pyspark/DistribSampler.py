@@ -59,10 +59,12 @@ class GradualDistAwareDistributedSamplerBG():
     """
 
     def __init__(self, dataset: Dataset, num_replicas: Optional[int] = None,
-                 rank: Optional[int] = None, shuffle: bool = True,
-                 seed: int = 0, drop_last: bool = False, batch_size: int = 16,
+                 rank: Optional[int] = None, shuffle: bool = True, batch_size: int = 16,
                  ip_mover=None, port_mover=None) -> None:
+        self.num_replicas = num_replicas
         self.batch_size = batch_size
+        self.dataset = dataset
+        self.total_size = len(dataset)
         self.total_batch = math.ceil(len(dataset)/batch_size)
         batch_count = 0
         for i in range(0, len(dataset), batch_size):
