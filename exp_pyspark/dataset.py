@@ -159,31 +159,15 @@ class DatasetPipeline():
 class GraddistBGPipeline():
     def __init__(self, dataset:Dataset, batch_size:int, sampler:DistributedSampler=None, num_replicas:int=None) -> None:
         print("dataset length: {0}".format(len(dataset)))
-        self.pipeline = None
         self.sampler = sampler
         if sampler is not None:
             self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler)
-        elif sampler == "dali":
-            num_threads = int(psutil.cpu_count(logical=False)//2)
-            device_id = 0
-            self.dataset = dataset
-            self.pipeline = PyTorchDaliPipeline(
-                pytorch_dataset=dataset, batch_size=batch_size,
-                num_threads=num_threads, device_id=device_id)
-            dali_pipeline.build()
-        else:
-            self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, shuffle=False)
         self.count = 0
 
     def set_epoch(self, epoch: int):
         self.sampler.set_epoch(epoch)
 
     def __iter__(self):
-        if self.sampler == "dali":
-            return DALIGenericIterator(
-                pipelines=[self.pipeline], output_map=["data", "label"],
-                size=len(self.dataset)
-            )
         idx = next(self.sampler.__iter__())
         x, y = self.dataloader.dataset[idx]
         
