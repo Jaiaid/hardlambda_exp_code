@@ -6,10 +6,13 @@ from torch.utils.data import Dataset
 import time
 import math
 import random
+import subprocess
+import os
 
 T_co = TypeVar('T_co', covariant=True)
 
 from torch.utils.data.distributed import DistributedSampler
+from DataMovementService import DataMoverService, DataMoverServiceInterfaceClient
 
 class DefaultDistributedSampler(DistributedSampler):
     r"""Sampler that restricts data loading to a subset of the dataset.
@@ -213,7 +216,8 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
 
     def __init__(self, dataset: Dataset, num_replicas: Optional[int] = None,
                  rank: Optional[int] = None, shuffle: bool = True,
-                 seed: int = 0, drop_last: bool = False, batch_size: int = 16) -> None:
+                 seed: int = 0, drop_last: bool = False, batch_size: int = 16,
+                 ip_mover=None, port_mover=None) -> None:
         super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
         self.batch_size = batch_size
         self.total_batch = math.ceil(len(dataset)/batch_size)
@@ -223,7 +227,29 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
         self.data_batch_read_latency = [np.nan] * int(batch_count)
         self.data_batch_read_freq = [0] * int(batch_count)
         # needed to provide index from appropriate offset
-        self.rank = 0
+        self.rank = rank
+
+        # starting the background data mover service
+        self.data_mover_service = subprocess.Popen(
+            """python3 {2}/DataMovementService.py --seqno {0}
+            -bs 16 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(
+                rank if rank < 3 else 2, port_mover, os.path.dirname(os.path.abspath(__file__))).split()
+        )
+        # check if running
+        if self.data_mover_service.poll() is None:
+            print("data mover service is running")
+
+        # try 10 times to connect
+        connection_refused_count = 0
+        while connection_refused_count < 10: 
+            try:
+                self.data_mover = DataMoverServiceInterfaceClient(ip_mover, port_mover)
+                break
+            except ConnectionError as e:
+                connection_refused_count += 1
+                print("connection establish attempt {0} failed".format(connection_refused_count))
+                # sleep for a second
+                time.sleep(1)
 
     def set_epoch(self, epoch: int) -> None:
         return super().set_epoch(epoch)
@@ -264,3 +290,19 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
             fout.write("batch,frequency\n")
             for batch_no, read_freq in enumerate(self.data_batch_read_freq):
                 fout.write(str(batch_no) + "," + str(read_freq) + "\n")
+
+    def __exit__(self):
+        # cleanup
+        try:
+            self.data_mover.close()
+            self.data_mover_service.kill()
+        except Exception as e:
+            print(e)
+
+    def __del__(self):
+        # cleanup
+        try:
+            self.data_mover.close()
+            self.data_mover_service.kill()
+        except Exception as e:
+            print(e)
