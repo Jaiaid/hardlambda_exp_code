@@ -9,11 +9,10 @@ import torchvision
 import argparse
 # from torch.utils.data import Dataset, DataLoader
 
-CACHESIZE_SAMPLE_COUNT = 10000
 SEED = 3400
 
 class SharedDataRedis():
-    def __init__(self, port, dataset, dataroot, dataoffset):
+    def __init__(self, port, cachesize, dataset, dataroot, dataoffset):
         if dataset == "cifar10":
             transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
@@ -39,16 +38,12 @@ class SharedDataRedis():
         redis_host = 'localhost'  # Change this to your Redis server's host
         redis_port = port  # Change this to your Redis server's port
         self.redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
-        
-        random.seed(SEED)
-        idx_used = list(range(0, CACHESIZE_SAMPLE_COUNT))
-        random.shuffle(idx_used)
 
         stored_count = 0
         for i, data in enumerate(self.train_dataset):
             if i < dataoffset:
                 continue
-            if dataset == "imagenet" and stored_count > CACHESIZE_SAMPLE_COUNT:
+            if dataset == "imagenet" and stored_count > cachesize:
                 break
             # Serialize the tensor to binary
             input, label= data
@@ -58,13 +53,13 @@ class SharedDataRedis():
                     torch.reshape(input, tuple(shape)), size=(224, 224), mode='bilinear', align_corners=False
                 )
             serialized_input_tensor = input.numpy().tobytes()
-            redis_key = str(idx_used[i]) 
+            redis_key = str(stored_count) 
             self.redis_client.set("data" + redis_key, serialized_input_tensor)
             self.redis_client.set("label" + redis_key, label.to_bytes(4, 'little'))
             stored_count += 1
         # store length
         if dataset == "imagenet":
-            self.redis_client.set("length", int(CACHESIZE_SAMPLE_COUNT).to_bytes(4, 'little'))
+            self.redis_client.set("length", int(cachesize).to_bytes(4, 'little'))
         else:
             self.redis_client.set("length", len(self.train_dataset).to_bytes(4, 'little'))
 
@@ -78,7 +73,8 @@ if __name__=='__main__':
     parser.add_argument("-p", "--port", type=str, help="server port", required=True)
     parser.add_argument("-data", "--dataset", choices=["cifar10", "cifar100", "imagenet"], help="which dataset to use", default="cifar10")
     parser.add_argument("-root", "--dataset-root", type=str, help="where dataset is", default="./data")
-    parser.add_argument("-offset", "--store_offset", type=int, help="from which offset image will be stored", required=True)
+    parser.add_argument("-offset", "--store-offset", type=int, help="from which offset image will be stored", required=True)
+    parser.add_argument("-size", "--cache-size", type=int, help="number of data samples", required=True)
     args = parser.parse_args()
 
     try:
