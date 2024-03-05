@@ -13,7 +13,7 @@ CACHESIZE_SAMPLE_COUNT = 10000
 SEED = 3400
 
 class SharedDataRedis():
-    def __init__(self, port, dataset, dataroot):
+    def __init__(self, port, dataset, dataroot, dataoffset):
         if dataset == "cifar10":
             transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
@@ -44,8 +44,11 @@ class SharedDataRedis():
         idx_used = list(range(0, CACHESIZE_SAMPLE_COUNT))
         random.shuffle(idx_used)
 
+        stored_count = 0
         for i, data in enumerate(self.train_dataset):
-            if dataset == "imagenet" and i >= CACHESIZE_SAMPLE_COUNT:
+            if i < dataoffset:
+                continue
+            if dataset == "imagenet" and stored_count > CACHESIZE_SAMPLE_COUNT:
                 break
             # Serialize the tensor to binary
             input, label= data
@@ -58,6 +61,7 @@ class SharedDataRedis():
             redis_key = str(idx_used[i]) 
             self.redis_client.set("data" + redis_key, serialized_input_tensor)
             self.redis_client.set("label" + redis_key, label.to_bytes(4, 'little'))
+            stored_count += 1
         # store length
         if dataset == "imagenet":
             self.redis_client.set("length", int(CACHESIZE_SAMPLE_COUNT).to_bytes(4, 'little'))
@@ -74,6 +78,7 @@ if __name__=='__main__':
     parser.add_argument("-p", "--port", type=str, help="server port", required=True)
     parser.add_argument("-data", "--dataset", choices=["cifar10", "cifar100", "imagenet"], help="which dataset to use", default="cifar10")
     parser.add_argument("-root", "--dataset-root", type=str, help="where dataset is", default="./data")
+    parser.add_argument("-offset", "--store_offset", type=int, help="from which offset image will be stored", required=True)
     args = parser.parse_args()
 
     try:
@@ -83,7 +88,7 @@ if __name__=='__main__':
 
         # Wait for Redis to start (adjust the sleep duration as needed)
         time.sleep(2)
-        data_pool = SharedDataRedis(port=args.port, dataset=args.dataset, dataroot=args.dataset_root)
+        data_pool = SharedDataRedis(port=args.port, dataset=args.dataset, dataroot=args.dataset_root, dataoffset=args.store_offset)
         # sleep idefinitely until keyboard exception
         # print("Memory rss footprint of redis process ", (psutil.Process(redis_server_process.pid).memory_info().rss)>>20, "MiB")
         # print("Memory shared footprint of redis starter process ", (psutil.Process().memory_info().shared)>>20, "MiB")
