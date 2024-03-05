@@ -25,40 +25,11 @@ def main():
 
     torch.distributed.init_process_group(backend="gloo", init_method="tcp://10.21.12.222:44144", world_size=1, rank=0)
 
-    rank = 0
     dataset = SharedDistRedisPool()
     data_sampler = GradualDistAwareDistributedSamplerBG(
-        dataset=dataset, num_replicas=1, batch_size=2)
-    data_sampler.set_rank(rank=0)
-    # starting the background data mover service
-    data_mover_service = subprocess.Popen(
-        """python3 {2}/DataMovementService.py --seqno {0}
-        -bs 2 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(
-            rank if rank < 3 else 2, 50524, os.path.dirname(os.path.abspath(__file__))).split()
-    )
-    # check if running
-    if data_mover_service.poll() is None:
-        print("data mover service is running")
-    # try 10 times to connect
-    connection_refused_count = 0
-    while connection_refused_count < 10: 
-        try:
-            data_mover = DataMoverServiceInterfaceClient("127.0.0.1", 50524)
-            break
-        except ConnectionError as e:
-            connection_refused_count += 1
-            print("connection establish attempt {0} failed".format(connection_refused_count))
-            # sleep for a second
-            time.sleep(1)
-
-    if connection_refused_count == 10:
-        print("connection failed, exiting...")
-        data_mover_service.kill()
-        exit(1)
-    else:
-        print("connection successful after {0} attempt".format(connection_refused_count))
-        print("data movement service client interface is opened")
-
+        dataset=dataset, num_replicas=1, batch_size=2, rank=2)
+    data_sampler.set_rank(rank=2)
+    
     # create the pipeline from sampler
     dataset_pipeline = GraddistBGPipeline(dataset=dataset, batch_size=2,
                                        sampler=data_sampler, num_replicas=1)
