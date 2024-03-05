@@ -84,7 +84,7 @@ if __name__=='__main__':
 
         # Wait for Redis to start (adjust the sleep duration as needed)
         time.sleep(2)
-        data_pool = SharedDataRedis(port=args.port, dataset=args.dataset, dataroot=args.dataset_root, dataoffset=args.store_offset)
+        data_pool = SharedDataRedis(port=args.port, dataset=args.dataset, dataroot=args.dataset_root, cachesize=args.cache_size, dataoffset=args.store_offset)
         # sleep idefinitely until keyboard exception
         # print("Memory rss footprint of redis process ", (psutil.Process(redis_server_process.pid).memory_info().rss)>>20, "MiB")
         # print("Memory shared footprint of redis starter process ", (psutil.Process().memory_info().shared)>>20, "MiB")
