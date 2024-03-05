@@ -2,6 +2,8 @@ import time
 import subprocess
 import os
 import numpy as np
+import torch
+
 from pyspark.sql import SparkSession
 
 from dataset import SharedDistRedisPool, GraddistBGPipeline
@@ -20,6 +22,8 @@ def generate_large_dataset(spark, num_partitions=4, partition_size=10**6):
 def main():
     # Create a Spark session
     spark = create_spark_session()
+
+    torch.distributed.init_process_group(backend="gloo", init_method="tcp://10.21.12.222:44144", world_size=1, rank=0)
 
     rank = 0
     dataset = SharedDistRedisPool()
