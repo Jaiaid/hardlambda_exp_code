@@ -4,9 +4,8 @@ import os
 import numpy as np
 from pyspark.sql import SparkSession
 
-from dataset import SharedDistRedisPool, DatasetPipeline
-from DistribSampler import DefaultDistributedSampler, GradualDistAwareDistributedSamplerBG
-from shade_modified import ShadeDataset, ShadeSampler
+from dataset import SharedDistRedisPool, GraddistBGPipeline
+from DistribSampler import GradualDistAwareDistributedSamplerBG
 from DataMovementService import DataMoverServiceInterfaceClient
 
 def create_spark_session():
@@ -57,7 +56,7 @@ def main():
         print("data movement service client interface is opened")
 
     # create the pipeline from sampler
-    dataset_pipeline = DatasetPipeline(dataset=dataset, batch_size=2,
+    dataset_pipeline = GraddistBGPipeline(dataset=dataset, batch_size=2,
                                        sampler=data_sampler, num_replicas=1)
 
     rdd_creation_timelist = []
