@@ -52,7 +52,7 @@ class DefaultDistributedSampler(DistributedSampler):
                 fout.write(str(batch_no) + "," + str(read_freq) + "\n")
 
 
-class GradualDistAwareDistributedSamplerBG(DistributedSampler):
+class GradualDistAwareDistributedSamplerBG():
     r"""Sampler that restricts data loading to a subset of the dataset.
 
     
@@ -62,7 +62,6 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
                  rank: Optional[int] = None, shuffle: bool = True,
                  seed: int = 0, drop_last: bool = False, batch_size: int = 16,
                  ip_mover=None, port_mover=None) -> None:
-        super().__init__(dataset, num_replicas, rank, shuffle, seed, drop_last)
         self.batch_size = batch_size
         self.total_batch = math.ceil(len(dataset)/batch_size)
         batch_count = 0
@@ -72,6 +71,7 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
         self.data_batch_read_freq = [0] * int(batch_count)
         # needed to provide index from appropriate offset
         self.rank = rank
+        self.epoch = 0
 
         # starting the background data mover service
         self.data_mover_service = subprocess.Popen(
@@ -96,8 +96,8 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
                 time.sleep(1)
 
     def set_epoch(self, epoch: int) -> None:
-        return super().set_epoch(epoch)
-    
+        self.epoch = epoch
+ 
     def set_rank(self, rank: int) -> None:
         self.rank = rank
 
