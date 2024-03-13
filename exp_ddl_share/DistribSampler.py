@@ -229,28 +229,6 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
         # needed to provide index from appropriate offset
         self.rank = rank
 
-        # starting the background data mover service
-        self.data_mover_service = subprocess.Popen(
-            """python3 {2}/DataMovementService.py --seqno {0}
-            -bs 16 -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(
-                rank if rank < 3 else 2, port_mover, os.path.dirname(os.path.abspath(__file__))).split()
-        )
-        # check if running
-        if self.data_mover_service.poll() is None:
-            print("data mover service is running")
-
-        # try 10 times to connect
-        connection_refused_count = 0
-        while connection_refused_count < 10: 
-            try:
-                self.data_mover = DataMoverServiceInterfaceClient(ip_mover, port_mover)
-                break
-            except ConnectionError as e:
-                connection_refused_count += 1
-                print("connection establish attempt {0} failed".format(connection_refused_count))
-                # sleep for a second
-                time.sleep(1)
-
     def set_epoch(self, epoch: int) -> None:
         return super().set_epoch(epoch)
     
@@ -293,16 +271,18 @@ class GradualDistAwareDistributedSamplerBG(DistributedSampler):
 
     def __exit__(self):
         # cleanup
-        try:
-            self.data_mover.close()
-            self.data_mover_service.kill()
-        except Exception as e:
-            print(e)
+        pass
+        # try:
+        #     self.data_mover.close()
+        #     self.data_mover_service.kill()
+        # except Exception as e:
+        #     print(e)
 
     def __del__(self):
         # cleanup
-        try:
-            self.data_mover.close()
-            self.data_mover_service.kill()
-        except Exception as e:
-            print(e)
+        pass
+        # try:
+        #     self.data_mover.close()
+        #     self.data_mover_service.kill()
+        # except Exception as e:
+        #     print(e)
