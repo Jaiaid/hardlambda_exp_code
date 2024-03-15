@@ -35,7 +35,7 @@ IMAGENET_DATA_DIR = "/sandbox1/data/imagenet/2017"
 # networks to benchmark, all are taken from torchvision
 NETWORK_LIST = ["efficientnet_b1", "mobilenet_v2", "resnet18", "resnet50", "resnet101", "vgg16"]
 # sampler list to benchmark
-SAMPLER_LIST = ["default", "dali", "shade", "graddistbg"]
+SAMPLER_LIST = ["default", "dali", "shade", "graddistbg", "graddistbgereduce"]
 # benchmark data dict
 benchmark_data_dict = {}
 # proposed method related variable
@@ -255,7 +255,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         if args.sampler == "shade":
             data_sampler = ShadeSampler(
                 dataset=dataset, num_replicas=args.world_size, batch_size=args.batch_size, host_ip="0.0.0.0")
-        elif args.sampler == "graddistbg":
+        elif args.sampler == "graddistbg" or args.sampler == "graddistbgereduce":
             data_sampler = GradualDistAwareDistributedSamplerBG(
                 dataset=dataset, num_replicas=args.world_size, batch_size=args.batch_size)
             data_sampler.set_rank(rank=args.rank)
@@ -276,7 +276,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         train_loader = DatasetPipeline(dataset=dataset, batch_size=args.batch_size,
                                         sampler=data_sampler, num_replicas=args.world_size)
 
-        if args.sampler == "graddistbg":
+        if args.sampler == "graddistbg" or args.sampler == "graddistbgereduce":
             # try 10 times to connect
             connection_refused_count = 0
             while connection_refused_count < 10: 
@@ -304,7 +304,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
 
             scheduler.step()
         
-        if args.sampler == "graddistbg":
+        if args.sampler == "graddistbg" or args.sampler == "graddistbgereduce":
             data_mover.close()
             data_mover_service.kill()
 
@@ -322,7 +322,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         dist.barrier()
         dist.destroy_process_group()
     
-        if args.sampler == "graddistbg":
+        if args.sampler == "graddistbg" or args.sampler == "graddistbgereduce":
             data_mover.close()
             data_mover_service.kill()
 
@@ -338,7 +338,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, proces
         # measure data loading time
         data_time.update(time.time() - end)
 
-        if args.sampler == "graddistbg":
+        if args.sampler == "graddistbg" or args.sampler == "graddistbgereduce":
             # data is read cache can be updated
             data_mover.updatecache(i)
 
@@ -347,7 +347,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, proces
         images = images.to(device, non_blocking=False)
         target = target.to(device, non_blocking=False)
 
-        if args.sampler == "graddistbg" and i < len(train_loader)/args.batch_size-1:
+        if args.sampler == "graddistbgereduce" and i < len(train_loader)/args.batch_size-1:
             with model.no_sync():
                 # compute output
                 output = model(images)
