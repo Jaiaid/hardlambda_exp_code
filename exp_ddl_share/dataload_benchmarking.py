@@ -164,7 +164,7 @@ def main():
                     datatime = benchmark_data_dict[network_arch][sampler][0]
                     processtime = benchmark_data_dict[network_arch][sampler][1]
                     exec_time = benchmark_data_dict[network_arch][sampler][2]
-                    fout.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(network_arch, sampler, datatime, processtime, exec_time))
+                    fout.write("{0}\t{1}\t{2}\t{3}\t{4}\n".format(network_arch, sampler+"_ereduce" if args.epoch_sync else sampler, datatime, processtime, exec_time))
 
 def main_worker(gpu, ngpus_per_node, args, arch):
     global data_mover, benchmark_data_dict
