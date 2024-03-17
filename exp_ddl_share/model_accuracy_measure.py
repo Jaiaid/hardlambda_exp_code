@@ -97,6 +97,8 @@ parser.add_argument("-sampler", "--sampler", choices=["default", "distaware", "s
 # for data movement service
 parser.add_argument("-ipm", "--ip_mover", type=str, help="data move service ip", default="lo", required=False)
 parser.add_argument("-portm", "--port_mover", type=str, help="data move service port", default="lo", required=False)
+# parameter synchornization modification related
+parser.add_argument("-esync", "--epoch-sync", action='store_true', help="use to sync gradient at epoch boundary")
 
 best_acc1 = 0
 
@@ -400,20 +402,34 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args):
         images = images.to(device, non_blocking=True)
         target = target.to(device, non_blocking=True)
 
-        # compute output
-        output = model(images)
-        loss = criterion(output, target)
+        if args.epoch_sync and i < len(train_loader)/args.batch_size-1:
+            with model.no_sync():
+                # compute output
+                output = model(images)
+                loss = criterion(output, target)
 
-        # measure accuracy and record loss
-        acc1, acc5 = accuracy(output, target, topk=(1, 5))
-        losses.update(loss.item(), images.size(0))
-        top1.update(acc1[0], images.size(0))
-        top5.update(acc5[0], images.size(0))
+                # measure accuracy and record loss
+                acc1, acc5 = accuracy(output, target, topk=(1, 5))
 
-        # compute gradient and do SGD step
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+                # compute gradient and do SGD step
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+        else:
+            # compute output
+            output = model(images)
+            loss = criterion(output, target)
+
+            # measure accuracy and record loss
+            acc1, acc5 = accuracy(output, target, topk=(1, 5))
+            losses.update(loss.item(), images.size(0))
+            top1.update(acc1[0], images.size(0))
+            top5.update(acc5[0], images.size(0))
+
+            # compute gradient and do SGD step
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
         # measure elapsed time
         batch_time.update(time.time() - end)
