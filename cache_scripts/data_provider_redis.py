@@ -13,23 +13,28 @@ SEED = 3400
 
 class SharedDataRedis():
     def __init__(self, port, cachesize, dataset, dataroot, dataoffset):
+        # the normalization mean and std for cifar10,100 got from
+        # https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
         if dataset == "cifar10":
             transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
-                torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to mean 0 and standard deviation 1
+                torchvision.transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010],)  # Normalize to mean 0 and standard deviation 1
             ])
 
-            self.train_dataset = torchvision.datasets.CIFAR10(root=dataroot, train=True, transform=transform, download=True)
+            self.train_dataset = torchvision.datasets.CIFAR10(root=".", train=True, transform=transform, download=True)
         elif dataset == "cifar100":
             transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
-                torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to mean 0 and standard deviation 1
+                torchvision.transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010],)  # Normalize to mean 0 and standard deviation 1
             ])
 
-            self.train_dataset = torchvision.datasets.CIFAR100(root=dataroot, train=True, transform=transform, download=True)
+            self.train_dataset = torchvision.datasets.CIFAR100(root=".", train=True, transform=transform, download=True)
         elif dataset == "imagenet":
             transform = torchvision.transforms.Compose([
+                torchvision.transforms.Resize(256),
+                torchvision.transforms.CenterCrop(224),
                 torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
+                torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
 
             self.train_dataset = torchvision.datasets.ImageNet(root=dataroot, transform=transform)
@@ -47,18 +52,18 @@ class SharedDataRedis():
                 break
             # Serialize the tensor to binary
             input, label= data
-            if dataset == "imagenet":
-                shape = [1] + list(input.shape)
-                input = torch.nn.functional.interpolate(
-                    torch.reshape(input, tuple(shape)), size=(224, 224), mode='bilinear', align_corners=False
-                )
+            # if dataset == "imagenet":
+            #     shape = [1] + list(input.shape)
+            #     input = torch.nn.functional.interpolate(
+            #         torch.reshape(input, tuple(shape)), size=(224, 224), mode='bilinear', align_corners=False
+            #     )
             serialized_input_tensor = input.numpy().tobytes()
             redis_key = str(stored_count) 
             self.redis_client.set("data" + redis_key, serialized_input_tensor)
             self.redis_client.set("label" + redis_key, label.to_bytes(4, 'little'))
             stored_count += 1
         # store length
-        self.redis_client.set("length", max(int(cachesize), len(self.train_dataset)).to_bytes(4, 'little'))
+        self.redis_client.set("length", min(int(cachesize), len(self.train_dataset)).to_bytes(4, 'little'))
 
 
 if __name__=='__main__':
