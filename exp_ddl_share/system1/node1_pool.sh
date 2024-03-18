@@ -7,6 +7,7 @@ CACHE_SIZE=15000
 for pid in `lsof -i -P -n | grep "redis-ser" | awk -F' ' '{ print $2 }' | tail -n +2`;do
     kill $pid
 done
+sleep 10
 
 # numa node 0 pool
 time numactl --cpunodebind=0 --membind=0  redis-server $ROOT_DIR/exp_ddl_share/system1/redis2.conf &
