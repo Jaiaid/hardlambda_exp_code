@@ -85,6 +85,9 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
 parser.add_argument('--dummy', action='store_true', help="use fake data to benchmark")
 # ddl interface related
 parser.add_argument("-if", "--iface", type=str, help="network device name", default="lo", required=False)
+# sampler related
+parser.add_argument("-sampler", "--sampler", default="default", required=False, choices=["default", "shade", "graddist", "graddistbg", "dali"],
+                        help="what sampler will be used")
 # for data movement service
 parser.add_argument("-ipm", "--ip_mover", type=str, help="data move service ip", default="lo", required=False)
 parser.add_argument("-portm", "--port_mover", type=str, help="data move service port", default="lo", required=False)
