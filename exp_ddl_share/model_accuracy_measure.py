@@ -99,6 +99,9 @@ parser.add_argument("-ipm", "--ip_mover", type=str, help="data move service ip",
 parser.add_argument("-portm", "--port_mover", type=str, help="data move service port", default="lo", required=False)
 # parameter synchornization modification related
 parser.add_argument("-esync", "--epoch-sync", action='store_true', help="use to sync gradient at epoch boundary")
+# which dataset to use
+parser.add_argument("-dset", "--dataset", choices=["cifar10", "cifar100", "imagenet"], default="imagenet", help="use to sync gradient at epoch boundary")
+
 
 best_acc1 = 0
 
@@ -257,12 +260,6 @@ def main_worker(gpu, ngpus_per_node, args):
             print("=> no checkpoint found at '{}'".format(args.resume))
 
 
-    # Data loading code
-    # we will get validation data locally
-    valdir = os.path.join(IMAGENET_DATA_DIR, 'val')
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                    std=[0.229, 0.224, 0.225])
-    
     # creating the custom data loading mechanism
     print("creating data pipeline")
     # Define the transformations for data preprocessing
@@ -295,7 +292,13 @@ def main_worker(gpu, ngpus_per_node, args):
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=args.world_size)
 
-    val_dataset = datasets.ImageFolder(
+    # Data loading code for validation
+    # we will get validation data locally
+    if args.dataset == "imagenet":
+        valdir = os.path.join(IMAGENET_DATA_DIR, 'val')
+        normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
+                                        std=[0.229, 0.224, 0.225])
+        val_dataset = datasets.ImageFolder(
         valdir,
         transforms.Compose([
             transforms.Resize(256),
@@ -303,14 +306,26 @@ def main_worker(gpu, ngpus_per_node, args):
             transforms.ToTensor(),
             normalize,
         ]))
+    elif args.dataset == "cifar10":
+        transform = transforms.Compose([
+            transforms.ToTensor(),               # Convert images to PyTorch tensors
+            transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010],)  # Normalize to mean 0 and standard deviation 1
+        ])
+        val_dataset = datasets.CIFAR10(root=".", train=False, transform=transform, download=True)
+    elif args.dataset == "cifar100":
+        transform = transforms.Compose([
+            transforms.ToTensor(),               # Convert images to PyTorch tensors
+            transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010],)  # Normalize to mean 0 and standard deviation 1
+        ])
+        val_dataset = datasets.CIFAR100(root=".", train=False, transform=transform, download=True)
 
-    if args.distributed:
+    # if args.distributed:
         # train sampler is special the system we are working on
         # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-        val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False, drop_last=True)
-    else:
-        train_sampler = None
-        val_sampler = None
+        # val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False, drop_last=True)
+    # else:
+    #     train_sampler = None
+    #     val_sampler = None
 
     # edited for custom data loading
     train_loader = DatasetPipeline(dataset=dataset, batch_size=args.batch_size,
@@ -318,7 +333,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     val_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.batch_size, shuffle=False,
-        num_workers=args.workers, pin_memory=True, sampler=val_sampler)
+        num_workers=args.workers, pin_memory=True)
 
     if args.evaluate:
         validate(val_loader, model, criterion, args)
