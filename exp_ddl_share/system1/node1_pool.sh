@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ROOT_DIR=../..
-CACHE_SIZE=15000
+CACHE_SIZE=$1
 
 # kill the existing redis-server
 for pid in `lsof -i -P -n | grep "redis-ser" | awk -F' ' '{ print $2 }' | tail -n +2`;do
