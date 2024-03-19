@@ -2,6 +2,7 @@ import math
 import psutil
 import numpy as np
 import redis
+import yaml
 import ctypes
 import torch
 import torchvision
@@ -54,38 +55,58 @@ class SharedRedisPool(Dataset):
 
 
 class SharedDistRedisPool(Dataset):
-    def __init__(self):
+    def __init__(self, cachedesc_filepath:str):
+        with open("cachedesc_filepath") as fin:
+            datadict = yaml.load(fin)
+
+        datadict = datadict["cachedict"]
+        cache_nodes_dict = {}
+        rank_id_dict = {}
+        for i, key in enumerate(datadict):
+            rank = key
+            rank_id_dict[i] = rank
+
+            ip = datadict[key][0].split(":")[0]
+            port = datadict[key][0].split(":")[1]
+            offset = datadict[key][1]["offset"]
+            length = datadict[key][1]["length"]
+            cache_nodes_dict[i] = [ip, port, offset, length]
         # prepare redis client
-        redis_host1 = '10.21.12.222'  # Change this to your Redis server's host
-        redis_port1 = 26379  # Change this to your Redis server's port
-        self.redis_client1 = redis.StrictRedis(host=redis_host1, port=redis_port1, db=0)
-        self.nb_samples = int.from_bytes(self.redis_client1.get("length"), 'little')
+        self.cache_connection_list = []
+        self.nb_samples = 0
+        self.cache_query_stat = {}
+        # create all the connection object by traversing parsed cache nodes description file
+        for i, cache_node_rank in enumerate(cache_nodes_dict):
+            redis_host = cache_nodes_dict[cache_node_rank][0]
+            redis_port = cache_nodes_dict[cache_node_rank][1]
+            # each entry is [connection object, offset, length of dataset]
+            self.cache_connection_list.append(
+                [redis.StrictRedis(host=redis_host, port=redis_port, db=0),
+                 cache_nodes_dict[cache_node_rank][2],
+                 cache_nodes_dict[cache_node_rank][3],
+                 redis_host+":"+redis_port]
+            )
+            self.nb_samples += int.from_bytes(self.cache_connection_list[-1][0].get("length"), 'little')
 
-        redis_host2 = '10.21.12.239'  # Change this to your Redis server's host
-        redis_port2 = 26379  # Change this to your Redis server's port
-        self.redis_client2 = redis.StrictRedis(host=redis_host2, port=redis_port2, db=0)
-        self.nb_samples += int.from_bytes(self.redis_client2.get("length"), 'little')
-
-        redis_host3 = '10.21.12.239'  # Change this to your Redis server's host
-        redis_port3 = 26380  # Change this to your Redis server's port
-        self.redis_client3 = redis.StrictRedis(host=redis_host3, port=redis_port3, db=0)
-        self.nb_samples += int.from_bytes(self.redis_client3.get("length"), 'little')
-
-        self.redis_query_stat = { '10.21.12.222:26379': 0, '10.21.12.239:26379': 0, '10.21.12.239:26380': 0}
+            self.cache_query_stat[redis_host+":"+redis_port] = 0
+        # sort according to offset, for later ease
+        self.cache_connection_list.sort(key=lambda x:x[1])
 
     def __getitem__(self, index):
-        if index >= 2*self.nb_samples/3:
-            index -= int(2*self.nb_samples/3)
-            select_redis_client = self.redis_client1
-            self.redis_query_stat['10.21.12.222:26379'] += 1
-        elif index >= self.nb_samples/3:
-            index -= int(self.nb_samples/3)
-            select_redis_client = self.redis_client2
-            self.redis_query_stat['10.21.12.239:26379'] += 1
-        else:
-            select_redis_client = self.redis_client3
-            self.redis_query_stat['10.21.12.239:26380'] += 1
+        # determine which one contains the data
+        select_redis_client = self.cache_connection_list[-1][0]
+        select_offset = self.cache_connection_list[-1][1]
+        select_querycache_key = self.cache_connection_list[-1][2]
+        for i in range(len(self.cache_connection_list)-1):
+            if self.cache_connection_list[i][1] <= index and index < self.cache_connection_list[i+1][1]:
+                select_redis_client = self.cache_connection_list[i][0]
+                select_offset = self.cache_connection_list[i][1]
+                select_querycache_key = self.cache_connection_list[i][2]
+        # for stat purpose
+        self.cache_query_stat[select_querycache_key] += 1
 
+        # subtract the offset
+        index -= select_offset
         deser_x = select_redis_client.get("data" + str(index))
         deser_y = select_redis_client.get("label" + str(index))
         x = np.frombuffer(deser_x, dtype=np.float32)
@@ -99,7 +120,7 @@ class SharedDistRedisPool(Dataset):
         return self.nb_samples
 
     def get_query_stat(self):
-        return self.redis_query_stat
+        return self.cache_query_stat
 
 
 class PyTorchDaliPipeline(Pipeline):
