@@ -12,7 +12,7 @@ import argparse
 SEED = 3400
 
 class SharedDataRedis():
-    def __init__(self, port, cachesize, dataset, dataroot, dataoffset):
+    def __init__(self, port, cachesize, dataset, dataroot, dataoffset, imgsize):
         # the normalization mean and std for cifar10,100 got from
         # https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
         if dataset == "cifar10":
@@ -31,8 +31,8 @@ class SharedDataRedis():
             self.train_dataset = torchvision.datasets.CIFAR100(root=".", train=True, transform=transform, download=True)
         elif dataset == "imagenet":
             transform = torchvision.transforms.Compose([
-                torchvision.transforms.Resize(256),
-                torchvision.transforms.CenterCrop(224),
+                torchvision.transforms.Resize(imgsize + int(imgsize*0.125)),
+                torchvision.transforms.CenterCrop(imgsize),
                 torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
                 torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
@@ -52,11 +52,6 @@ class SharedDataRedis():
                 break
             # Serialize the tensor to binary
             input, label= data
-            # if dataset == "imagenet":
-            #     shape = [1] + list(input.shape)
-            #     input = torch.nn.functional.interpolate(
-            #         torch.reshape(input, tuple(shape)), size=(224, 224), mode='bilinear', align_corners=False
-            #     )
             serialized_input_tensor = input.numpy().tobytes()
             redis_key = str(stored_count) 
             self.redis_client.set("data" + redis_key, serialized_input_tensor)
@@ -77,6 +72,7 @@ if __name__=='__main__':
     parser.add_argument("-root", "--dataset-root", type=str, help="where dataset is", default="./data")
     parser.add_argument("-offset", "--store-offset", type=int, help="from which offset image will be stored", required=True)
     parser.add_argument("-size", "--cache-size", type=int, help="number of data samples", required=True)
+    parser.add_argument("-dim", "--image-dimension", type=int, help="dimension of image", required=False, default=224)
     args = parser.parse_args()
 
     try:
@@ -86,7 +82,7 @@ if __name__=='__main__':
 
         # Wait for Redis to start (adjust the sleep duration as needed)
         time.sleep(2)
-        data_pool = SharedDataRedis(port=args.port, dataset=args.dataset, dataroot=args.dataset_root, cachesize=args.cache_size, dataoffset=args.store_offset)
+        data_pool = SharedDataRedis(port=args.port, dataset=args.dataset, dataroot=args.dataset_root, cachesize=args.cache_size, dataoffset=args.store_offset, imgsize=args.image_dimension)
         # sleep idefinitely until keyboard exception
         # print("Memory rss footprint of redis process ", (psutil.Process(redis_server_process.pid).memory_info().rss)>>20, "MiB")
         # print("Memory shared footprint of redis starter process ", (psutil.Process().memory_info().shared)>>20, "MiB")
