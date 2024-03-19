@@ -159,14 +159,15 @@ def main():
     # only rank 0 process will do that
     if args.rank == 0:
         with open("benchmark_iteration_step.tsv", "w") as fout:
-            fout.write("Network Arch\tSampler\tdataload time\tdata process time\texec time\trss(MiB)\n")
+            fout.write("Network Arch\tSampler\tdataload time\tdata process time\texec time\trss(MiB)\tvms(MiB)\n")
             for network_arch in NETWORK_LIST:
                 for sampler in SAMPLER_LIST:
                     datatime = benchmark_data_dict[network_arch][sampler][0]
                     processtime = benchmark_data_dict[network_arch][sampler][1]
                     exec_time = benchmark_data_dict[network_arch][sampler][2]
                     rss = benchmark_data_dict[network_arch][sampler][3]
-                    fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(network_arch, sampler+"_ereduce" if args.epoch_sync else sampler, datatime, processtime, exec_time, rss))
+                    vms = benchmark_data_dict[network_arch][sampler][4]
+                    fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\n".format(network_arch, sampler+"_ereduce" if args.epoch_sync else sampler, datatime, processtime, exec_time, rss, vms))
 
 def main_worker(gpu, ngpus_per_node, args, arch):
     global data_mover, benchmark_data_dict
@@ -296,7 +297,8 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         process_time = AverageMeter()
         data_time = AverageMeter()
         exec_time = AverageMeter()
-        rss_amount = AverageMeter
+        rss_amount = AverageMeter()
+        vms_amount = AverageMeter()
 
         start_time = time.time()
         for epoch in range(args.epochs):
@@ -305,7 +307,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
                 train_loader.set_epoch(epoch)
 
             # train for one epoch
-            train(train_loader, model, criterion, optimizer, epoch, device, args, process_time=process_time, data_time=data_time, memory_rss=rss_amount)
+            train(train_loader, model, criterion, optimizer, epoch, device, args, process_time=process_time, data_time=data_time, memory_rss=rss_amount, memory_vms=vms_amount)
 
             scheduler.step()
         
@@ -320,7 +322,8 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         data_time.all_reduce()
         exec_time.all_reduce()
         rss_amount.all_reduce()
-        benchmark_data_dict[arch][args.sampler] = [data_time, process_time, exec_time, rss_amount]
+        vms_amount.all_reduce()
+        benchmark_data_dict[arch][args.sampler] = [data_time, process_time, exec_time, rss_amount, vms_amount]
 
         dist.barrier()
         dist.destroy_process_group()
@@ -334,7 +337,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
 
         raise e
 
-def train(train_loader, model, criterion, optimizer, epoch, device, args, process_time, data_time, memory_rss):
+def train(train_loader, model, criterion, optimizer, epoch, device, args, process_time, data_time, memory_rss, memory_vms):
     global data_mover
     # switch to train mode
     model.train()
@@ -383,6 +386,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, proces
         end = time.time()
         process_time.update(time.time() - process_start_time)
         memory_rss.update(psutil.Process().memory_info().rss>>20)
+        memory_vms.update(psutil.Process().memory_info().vms>>20)
 
 class Summary(Enum):
     NONE = 0
