@@ -10,7 +10,7 @@ from typing import TypeVar, Optional, Iterator
 from torch.utils.data import Dataset
 from torch.utils.data.distributed import DistributedSampler
 
-from DataMovementService import DataMoverServiceInterfaceClient
+from .DataMovementService import DataMoverServiceInterfaceClient
 
 
 T_co = TypeVar('T_co', covariant=True)
@@ -74,7 +74,7 @@ class GradualDistAwareDistributedSamplerBG():
         # needed to provide index from appropriate offset
         self.rank = rank
         self.epoch = 0
-
+        '''
         # starting the background data mover service
         self.data_mover_service = subprocess.Popen(
             """python3 {2}/DataMovementService.py --seqno {0}
@@ -96,7 +96,7 @@ class GradualDistAwareDistributedSamplerBG():
                 print("connection establish attempt {0} failed".format(connection_refused_count))
                 # sleep for a second
                 time.sleep(1)
-
+        '''
     def set_epoch(self, epoch: int) -> None:
         self.epoch = epoch
  
