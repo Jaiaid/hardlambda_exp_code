@@ -3,7 +3,10 @@ import redis
 import torch
 import argparse
 
+
 class DataMoverService():
+    MAXCMD_SIZE = 16
+
     @staticmethod
     def connect_to_cache(cachelist: list) -> list:
         """implementation for redis cache"""
@@ -14,9 +17,9 @@ class DataMoverService():
 
         return cache_client_list
 
-    def start(self, batch_size: int, cachelist: list, ip: str,
+    def start(self, cachelist: list, ip: str,
               port: int, seqno:int, peerlist: list) -> None:
-        self.batch_size = batch_size
+        self.batch_size = 1
         # first start your server at standard port, so trainer process can notify
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # bind it to port
@@ -48,9 +51,14 @@ class DataMoverService():
     def getcmd(self):
         while True:
             # recv from trainer
-            # cmd size will be at most 16
-            cmd = self.trainer_socket.recv(16).decode("utf-8")
-            if cmd[:5] == "batch":
+            # cmd size will be at most DataMoverService.MAXCMD_SIZE
+            cmd = self.trainer_socket.recv(DataMoverService.MAXCMD_SIZE).decode("utf-8")
+            if cmd[:2] == "bs":
+                batch_size = int.from_bytes(self.trainer_socket.recv(4), "little")
+                self.batch_size = batch_size
+                # update done send message
+                self.trainer_socket.send(b"done")
+            elif cmd[:5] == "batch":
                 batch_no = int.from_bytes(self.trainer_socket.recv(4), "little")
                 self.updatecache(batch_no=batch_no)
                 # update done send message
@@ -68,13 +76,13 @@ class DataMoverServiceInterfaceClient():
     @staticmethod
     def convert_to_cmdbuffer(cmd_string: str) -> bytearray:
         cmdbytes = "batch".encode("utf-8")
-        buffer = bytearray(16)
+        buffer = bytearray(DataMoverService.MAXCMD_SIZE)
         buffer[:len(cmdbytes)] = cmdbytes
         return buffer
 
     def updatecache(self, batch_no: int) -> None:
         # recv from trainer
-        # cmd size will be 16 byte
+        # cmd size will be DataMoverService.MAXCMD_SIZE byte
         # if not first time see if you have received any "done" message"
         if not self.first_time:
             cmd = ""
@@ -86,6 +94,21 @@ class DataMoverServiceInterfaceClient():
         self.connection_socket.send(
             DataMoverServiceInterfaceClient.convert_to_cmdbuffer("batch"))
         self.connection_socket.send(int.to_bytes(batch_no, length=4, byteorder="little"))
+
+    def set_batchsize(self, batch_size:int) -> None:
+        # recv from trainer
+        # cmd size will be DataMoverService.MAXCMD_SIZE byte
+        # if not first time see if you have received any "done" message"
+        if not self.first_time:
+            cmd = ""
+            while cmd[0:4] != "done":
+                cmd = self.connection_socket.recv(4).decode("utf-8")
+        self.first_time = False
+
+        # send the cmd
+        self.connection_socket.send(
+            DataMoverServiceInterfaceClient.convert_to_cmdbuffer("bs"))
+        self.connection_socket.send(int.to_bytes(batch_size, length=4, byteorder="little"))
         
     def close(self):
         # this check is done to confirm final update is done
@@ -105,8 +128,6 @@ class DataMoverServiceInterfaceClient():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-sno", "--seqno", type=int, help="which cache idx it will consider local", required=True)
-    parser.add_argument("-bs", "--batch_size", type=int, help="batch size per iteration, default 16",
-                        default=16)
     parser.add_argument("-cn", "--cache_nodes", nargs="+", type=list, help="how many redis cache node and their port", required=True)
     parser.add_argument("-pn", "--peer_nodes", nargs="+", type=list, help="how many peer trainer node and their port", required=True)
     parser.add_argument("-p", "--port", type=int, help="on which port service will listen", required=True)
@@ -121,7 +142,7 @@ if __name__ == "__main__":
     service = DataMoverService()
     # start
     service.start(
-        batch_size=args.batch_size, cachelist=cache_nodes_processed, ip="127.0.0.1", port=args.port,
+        cachelist=cache_nodes_processed, ip="127.0.0.1", port=args.port,
         seqno=args.seqno, peerlist=args.peer_nodes
     )
     service.getcmd()
