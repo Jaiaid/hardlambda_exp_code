@@ -134,17 +134,19 @@ class GradualDistAwareDistributedSamplerBG():
                 fout.write(str(batch_no) + "," + str(read_freq) + "\n")
 
     def __exit__(self):
+        pass
         # cleanup
-        try:
-            self.data_mover.close()
-            self.data_mover_service.kill()
-        except Exception as e:
-            print(e)
+        # try:
+        #     self.data_mover.close()
+        #     self.data_mover_service.kill()
+        # except Exception as e:
+        #     print(e)
 
     def __del__(self):
+        pass
         # cleanup
-        try:
-            self.data_mover.close()
-            self.data_mover_service.kill()
-        except Exception as e:
-            print(e)
+        # try:
+        #     self.data_mover.close()
+        #     self.data_mover_service.kill()
+        # except Exception as e:
+        #     print(e)
