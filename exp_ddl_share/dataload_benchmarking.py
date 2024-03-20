@@ -8,6 +8,7 @@ import time
 import subprocess
 import psutil
 import warnings
+import redis
 from enum import Enum
 
 import torch
@@ -314,6 +315,12 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         if args.sampler == "graddistbg":
             data_mover.close()
             data_mover_service.kill()
+        if args.sampler == "shade":
+            # clean the cached data for next run
+            redis_host = 'localhost'  # Change this to your Redis server's host
+            redis_port = 6379  # Change this to your Redis server's port
+            redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
+            redis_client.flushdb()
 
         exec_time.update(time.time() - start_time)
         print("network {0} took {1}s".format(arch, str(exec_time)))
@@ -334,6 +341,12 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         if args.sampler == "graddistbg":
             data_mover.close()
             data_mover_service.kill()
+        if args.sampler == "shade":
+            # clean the cached data for next run
+            redis_host = 'localhost'  # Change this to your Redis server's host
+            redis_port = 6379  # Change this to your Redis server's port
+            redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
+            redis_client.flushdb()
 
         raise e
 
