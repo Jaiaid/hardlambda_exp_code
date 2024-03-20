@@ -34,11 +34,6 @@ from ..datatrain.DataMovementService import DataMoverServiceInterfaceClient
 
 # local cluster environment specific
 IMAGENET_DATA_DIR = "/sandbox1/data/imagenet/2017"
-# networks to benchmark, all are taken from torchvision
-NETWORK_LIST = ["efficientnet_b1", "mobilenet_v2", "resnet18", "resnet50"]
-# sampler list to benchmark
-SAMPLER_LIST = ["default", "dali", "shade", "graddistbg"]
-
 # what size of image used
 image_size = None
 # benchmark data dict
