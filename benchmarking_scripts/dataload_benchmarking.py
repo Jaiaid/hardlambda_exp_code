@@ -100,6 +100,8 @@ parser.add_argument("-esync", "--epoch-sync", action='store_true', help="use to 
 def main():
     args = parser.parse_args()
 
+    network_arch = args.arch
+    sampler = args.sampler
     iface = args.iface
     os.environ["GLOO_SOCKET_IFNAME"] = str(iface)
 
@@ -159,22 +161,20 @@ def main():
     if args.rank == 0:
         with open("benchmark_iteration_step.tsv", "a") as fout:
             fout.write("Network Arch\tBatch Size\tImage Size\tEpoch\tSampler\tdataload time\tdata process time\tcache update time\texec time\trss(MiB)\tvms(MiB)\tmax rss(MiB)\tmax vms(MiB)\n")
-            for network_arch in NETWORK_LIST:
-                for sampler in SAMPLER_LIST:
-                    datatime = benchmark_data_dict[network_arch][sampler][0]
-                    cache_time = benchmark_data_dict[network_arch][sampler][1]
-                    processtime = benchmark_data_dict[network_arch][sampler][2]
-                    exec_time = benchmark_data_dict[network_arch][sampler][3]
-                    rss = benchmark_data_dict[network_arch][sampler][4]
-                    vms = benchmark_data_dict[network_arch][sampler][5]
-                    rss_peak = benchmark_data_dict[network_arch][sampler][6]
-                    vms_peak = benchmark_data_dict[network_arch][sampler][7]
-                    fout.write(
-                        "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(
-                            network_arch, args.batch_size, image_size, args.epoch, sampler+"_ereduce" if args.epoch_sync else sampler, datatime, 
-                            processtime, exec_time, rss, vms, rss_peak, vms_peak
-                        )
-                    )
+            datatime = benchmark_data_dict[network_arch][sampler][0]
+            cache_time = benchmark_data_dict[network_arch][sampler][1]
+            processtime = benchmark_data_dict[network_arch][sampler][2]
+            exec_time = benchmark_data_dict[network_arch][sampler][3]
+            rss = benchmark_data_dict[network_arch][sampler][4]
+            vms = benchmark_data_dict[network_arch][sampler][5]
+            rss_peak = benchmark_data_dict[network_arch][sampler][6]
+            vms_peak = benchmark_data_dict[network_arch][sampler][7]
+            fout.write(
+                "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\n".format(
+                    network_arch, args.batch_size, image_size, args.epoch, sampler+"_ereduce" if args.epoch_sync else sampler, datatime, cache_time,
+                    processtime, exec_time, rss, vms, rss_peak, vms_peak
+                )
+            )
 
 def main_worker(gpu, ngpus_per_node, args, arch):
     global data_mover, benchmark_data_dict
