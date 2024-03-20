@@ -1,4 +1,7 @@
 **/data
+**/*.tsv
+**/*.csv
+**/*.log
 **/*.rdb
 **/*.txt
 **/*.sardata
