@@ -160,7 +160,7 @@ def main():
     # only rank 0 process will do that
     if args.rank == 0:
         with open("benchmark_iteration_step.tsv", "w") as fout:
-            fout.write("Network Arch\tSampler\tdataload time\tdata process time\texec time\trss(MiB)\tvms(MiB)\n")
+            fout.write("Network Arch\tSampler\tdataload time\tdata process time\texec time\trss(MiB)\tvms(MiB)\tmax rss(MiB)\tmax vms(MiB)\n")
             for network_arch in NETWORK_LIST:
                 for sampler in SAMPLER_LIST:
                     datatime = benchmark_data_dict[network_arch][sampler][0]
@@ -168,7 +168,9 @@ def main():
                     exec_time = benchmark_data_dict[network_arch][sampler][2]
                     rss = benchmark_data_dict[network_arch][sampler][3]
                     vms = benchmark_data_dict[network_arch][sampler][4]
-                    fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\n".format(network_arch, sampler+"_ereduce" if args.epoch_sync else sampler, datatime, processtime, exec_time, rss, vms))
+                    rss_peak = benchmark_data_dict[network_arch][sampler][5]
+                    vms_peak = benchmark_data_dict[network_arch][sampler][5]
+                    fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(network_arch, sampler+"_ereduce" if args.epoch_sync else sampler, datatime, processtime, exec_time, rss, vms, rss_peak, vms_peak))
 
 def main_worker(gpu, ngpus_per_node, args, arch):
     global data_mover, benchmark_data_dict
@@ -299,7 +301,9 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         data_time = AverageMeter()
         exec_time = AverageMeter()
         rss_amount = AverageMeter()
+        rss_peak = MaxMeter()
         vms_amount = AverageMeter()
+        vms_peak = MaxMeter()
 
         start_time = time.time()
         for epoch in range(args.epochs):
@@ -308,7 +312,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
                 train_loader.set_epoch(epoch)
 
             # train for one epoch
-            train(train_loader, model, criterion, optimizer, epoch, device, args, process_time=process_time, data_time=data_time, memory_rss=rss_amount, memory_vms=vms_amount)
+            train(train_loader, model, criterion, optimizer, epoch, device, args, process_time=process_time, data_time=data_time, memory_rss=rss_amount, memory_vms=vms_amount, rss_peak=rss_peak, vms_peak=vms_peak)
 
             scheduler.step()
         
@@ -330,7 +334,9 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         exec_time.all_reduce()
         rss_amount.all_reduce()
         vms_amount.all_reduce()
-        benchmark_data_dict[arch][args.sampler] = [data_time, process_time, exec_time, rss_amount, vms_amount]
+        rss_peak.all_reduce()
+        vms_peak.all_reduce()
+        benchmark_data_dict[arch][args.sampler] = [data_time, process_time, exec_time, rss_amount, vms_amount, rss_peak, vms_peak]
 
         dist.barrier()
         dist.destroy_process_group()
@@ -350,7 +356,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
 
         raise e
 
-def train(train_loader, model, criterion, optimizer, epoch, device, args, process_time, data_time, memory_rss, memory_vms):
+def train(train_loader, model, criterion, optimizer, epoch, device, args, process_time, data_time, memory_rss, memory_vms, rss_peak, vms_peak):
     global data_mover
     # switch to train mode
     model.train()
@@ -400,6 +406,8 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, proces
         process_time.update(time.time() - process_start_time)
         memory_rss.update(psutil.Process().memory_info().rss>>20)
         memory_vms.update(psutil.Process().memory_info().vms>>20)
+        rss_peak.update(psutil.Process().memory_info().rss>>20)
+        vms_peak.update(psutil.Process().memory_info().vms>>20)
 
 class Summary(Enum):
     NONE = 0
@@ -439,6 +447,35 @@ class AverageMeter(object):
 
     def __str__(self):
         return str(self.avg)
+
+
+class MaxMeter(object):
+    """Computes and stores the average and current value"""
+    def __init__(self, summary_type=Summary.AVERAGE):
+        self.summary_type = summary_type
+        self.reset()
+
+    def reset(self):
+        self.max = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.count += n
+        self.max = max(self.max, val)
+
+    def all_reduce(self):
+        if torch.cuda.is_available():
+            device = torch.device("cuda")
+        elif torch.backends.mps.is_available():
+            device = torch.device("mps")
+        else:
+            device = torch.device("cpu")
+        max_tensor = torch.tensor([self.max], dtype=torch.float32, device=device)
+        dist.all_reduce(max_tensor, dist.ReduceOp.MAX, async_op=False)
+        self.max = max_tensor.tolist()
+
+    def __str__(self):
+        return str(self.max)
 
 class ProgressMeter(object):
     def __init__(self, num_batches, meters, prefix=""):
