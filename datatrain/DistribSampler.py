@@ -3,6 +3,7 @@ import numpy as np
 import torch.distributed as dist
 import time
 import math
+import random
 import subprocess
 import os
 
@@ -59,7 +60,7 @@ class GradualDistAwareDistributedSamplerBG():
     """
 
     def __init__(self, dataset: Dataset, num_caches: Optional[int] = None,
-                 rank: Optional[int] = None,  batch_size: int = 16) -> None:
+                 rank: Optional[int] = None, batch_size: int = 16) -> None:
         self.num_caches = num_caches
         self.batch_size = batch_size
         self.dataset = dataset
@@ -109,6 +110,9 @@ class GradualDistAwareDistributedSamplerBG():
             end_idx = num_batch_per_cache
             indices = list(range(self.rank * num_batch_per_cache * self.batch_size,
                               self.rank * num_batch_per_cache * self.batch_size + end_idx * self.batch_size))
+            # local shuffling
+            random.seed(self.epoch + self.rank)
+            random.shuffle(indices)
             self.iterator = iter(indices)
             self.first_time = False
         return self.iterator
