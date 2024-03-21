@@ -26,11 +26,15 @@ import torchvision.transforms as transforms
 from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import Subset
 
+# to use package in a script and the pacakege in different folder
+import sys
+sys.path.append("..")
+
 # custom dataset, dataloader related packages
-from ..datatrain.dataset import SharedDistRedisPool, DatasetPipeline, PyTorchDaliPipeline
-from ..datatrain.DistribSampler import DefaultDistributedSampler, GradualDistAwareDistributedSamplerBG
-from ..datatrain.shade_modified import ShadeDataset, ShadeSampler
-from ..datatrain.DataMovementService import DataMoverServiceInterfaceClient
+from datatrain.dataset import SharedDistRedisPool, DatasetPipeline, PyTorchDaliPipeline, GraddistBGPipeline
+from datatrain.DistribSampler import DefaultDistributedSampler, GradualDistAwareDistributedSamplerBG
+from datatrain.shade_modified import ShadeDataset, ShadeSampler
+from datatrain.DataMovementService import DataMoverServiceInterfaceClient
 
 # local cluster environment specific
 IMAGENET_DATA_DIR = "/sandbox1/data/imagenet/2017"
@@ -171,7 +175,7 @@ def main():
             vms_peak = benchmark_data_dict[network_arch][sampler][7]
             fout.write(
                 "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\n".format(
-                    network_arch, args.batch_size, image_size, args.epoch, sampler+"_ereduce" if args.epoch_sync else sampler, datatime, cache_time,
+                    network_arch, args.batch_size, image_size, args.epochs, sampler+"_ereduce" if args.epoch_sync else sampler, datatime, cache_time,
                     processtime, exec_time, rss, vms, rss_peak, vms_peak
                 )
             )
@@ -282,7 +286,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
                 print("data mover service is running")
         else:
             data_sampler = DefaultDistributedSampler(
-                dataset=dataset, num_replicas=args.world_size)
+                dataset=dataset, num_caches=args.world_size)
 
         # edited for custom data loading
         train_loader = DatasetPipeline(dataset=dataset, batch_size=args.batch_size,
