@@ -75,7 +75,7 @@ class DataMoverServiceInterfaceClient():
 
     @staticmethod
     def convert_to_cmdbuffer(cmd_string: str) -> bytearray:
-        cmdbytes = "batch".encode("utf-8")
+        cmdbytes = cmd_string.encode("utf-8")
         buffer = bytearray(DataMoverService.MAXCMD_SIZE)
         buffer[:len(cmdbytes)] = cmdbytes
         return buffer

@@ -59,8 +59,7 @@ class GradualDistAwareDistributedSamplerBG():
     """
 
     def __init__(self, dataset: Dataset, num_caches: Optional[int] = None,
-                 rank: Optional[int] = None, shuffle: bool = True, batch_size: int = 16,
-                 ip_mover=None, port_mover=None) -> None:
+                 rank: Optional[int] = None,  batch_size: int = 16) -> None:
         self.num_caches = num_caches
         self.batch_size = batch_size
         self.dataset = dataset
@@ -104,16 +103,16 @@ class GradualDistAwareDistributedSamplerBG():
         self.rank = rank
 
     def __iter__(self) -> Iterator[T_co]:
-        num_batch_per_cache = int(self.total_size / (self.num_caches * self.batch_size))
-        # we are not modding this for batch generation logic simplification
-        end_idx = num_batch_per_cache
-
-        indices = list(range(self.rank * num_batch_per_cache * self.batch_size,
-                             self.rank * num_batch_per_cache * self.batch_size + end_idx * self.batch_size))
-        indices *= num_batch_per_cache
+        if self.first_time:
+            num_batch_per_cache = int(self.total_size / (self.num_caches * self.batch_size))
+            # we are not modding this for batch generation logic simplification
+            end_idx = num_batch_per_cache
+            indices = list(range(self.rank * num_batch_per_cache * self.batch_size,
+                              self.rank * num_batch_per_cache * self.batch_size + end_idx * self.batch_size))
+            self.iterator = iter(indices)
+            self.first_time = False
+        return self.iterator
         
-        return iter(indices)
-
     def set_batch_time(self, batch_no:int, read_time:float):
         idx = batch_no
 #        self.data_batch_read_latency[idx] = read_time

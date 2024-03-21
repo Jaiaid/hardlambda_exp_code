@@ -56,8 +56,8 @@ class SharedRedisPool(Dataset):
 
 class SharedDistRedisPool(Dataset):
     def __init__(self, cachedesc_filepath:str):
-        with open("cachedesc_filepath") as fin:
-            datadict = yaml.load(fin)
+        with open(cachedesc_filepath) as fin:
+            datadict = yaml.safe_load(fin)
 
         datadict = datadict["cachedict"]
         cache_nodes_dict = {}
@@ -101,7 +101,7 @@ class SharedDistRedisPool(Dataset):
             if self.cache_connection_list[i][1] <= index and index < self.cache_connection_list[i+1][1]:
                 select_redis_client = self.cache_connection_list[i][0]
                 select_offset = self.cache_connection_list[i][1]
-                select_querycache_key = self.cache_connection_list[i][2]
+                select_querycache_key = self.cache_connection_list[i][3]
         # for stat purpose
         self.cache_query_stat[select_querycache_key] += 1
 
@@ -184,18 +184,24 @@ class GraddistBGPipeline():
         if sampler is not None:
             self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler)
         self.count = 0
+        self.batch_size = batch_size
 
     def set_epoch(self, epoch: int):
         self.sampler.set_epoch(epoch)
 
     def __iter__(self):
-        idx = next(self.sampler.__iter__())
-        x, y = self.dataloader.dataset[idx]
+        x_list = []
+        y_list = []
+        for i in range(self.batch_size):
+            idx = next(self.sampler.__iter__())
+            x, y = self.dataloader.dataset[idx]
+            x_list.append(x)
+            y_list.append(y)
         
         self.count += 1
-        if self.count % self.sampler.batch_size == 0 and idx>0:
-            self.sampler.data_mover.updatecache((idx-1)//self.sampler.batch_size)
-        yield x, y
+        # if self.count % self.sampler.batch_size == 0 and idx>0:
+        #     self.sampler.data_mover.updatecache((idx-1)//self.sampler.batch_size)
+        yield torch.stack(x_list, dim=0), torch.tensor(y_list, dtype=torch.long).reshape(self.batch_size)
 
     def dump_data_read_freq(self, output_file_path:str):
         self.sampler.dump_data_read_freq(output_file_path=output_file_path)
