@@ -144,12 +144,9 @@ class ShadeDataset(Dataset):
             # subtract the offset
             index -= select_offset
             deser_x = select_redis_client.get("data" + str(index))
-            deser_y = select_redis_client.get("label" + str(index))
             x = np.frombuffer(deser_x, dtype=np.float32)
             dim_x = int(math.ceil(math.sqrt(x.shape[0]/3)))
-            x = torch.from_numpy(x.reshape(3,dim_x,dim_x))
-            y = int.from_bytes(deser_y, 'little')
-            sample = y
+            sample = torch.from_numpy(x.reshape(3,dim_x,dim_x))
             # insertion_time = datetime.now()
             # insertion_time = insertion_time.strftime("%H:%M:%S")
             # print("train_search_index: %d time: %s" %(index, insertion_time))
