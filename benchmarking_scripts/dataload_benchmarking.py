@@ -266,7 +266,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     if args.sampler != "shade":
         dataset = SharedDistRedisPool(cachedesc_filepath=args.cache_descriptor)
     else:
-        dataset = ShadeDataset()
+        dataset = ShadeDataset(cachedesc_filepath=args.cache_descriptor)
 
     # create the sampler
     if args.sampler == "shade":
