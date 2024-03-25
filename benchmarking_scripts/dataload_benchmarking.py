@@ -274,7 +274,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
             dataset=dataset, num_replicas=args.world_size, batch_size=args.batch_size, host_ip="0.0.0.0")
     elif args.sampler == "graddistbg":
         data_sampler = GradualDistAwareDistributedSamplerBG(
-            dataset=dataset, num_replicas=args.world_size, batch_size=args.batch_size)
+            dataset=dataset, num_caches=3, batch_size=args.batch_size)
         data_sampler.set_rank(rank=args.rank)
         # starting the background data mover service
         data_mover_service = subprocess.Popen(
