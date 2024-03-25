@@ -188,7 +188,8 @@ class ShadeDataset(Dataset):
         # print("train_search_index: %d time: %s" %(index, insertion_time))
 
         sample = self.cache_and_evict(index)
-
+        target = y
+        
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
