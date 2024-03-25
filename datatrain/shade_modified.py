@@ -130,7 +130,29 @@ class ShadeDataset(Dataset):
             sample = torch.from_numpy(x.reshape(3,dim_x,dim_x))
         else:
             # determine which one contains the data
-            sample, _ = self.__getitem__(index=index)
+            select_redis_client = self.cache_connection_list[-1][0]
+            select_offset = self.cache_connection_list[-1][1]
+            select_querycache_key = self.cache_connection_list[-1][3]
+            for i in range(len(self.cache_connection_list)-1):
+                if self.cache_connection_list[i][1] <= index and index < self.cache_connection_list[i+1][1]:
+                    select_redis_client = self.cache_connection_list[i][0]
+                    select_offset = self.cache_connection_list[i][1]
+                    select_querycache_key = self.cache_connection_list[i][3]
+            # for stat purpose
+            self.cache_query_stat[select_querycache_key] += 1
+
+            # subtract the offset
+            index -= select_offset
+            deser_x = select_redis_client.get("data" + str(index))
+            deser_y = select_redis_client.get("label" + str(index))
+            x = np.frombuffer(deser_x, dtype=np.float32)
+            dim_x = int(math.ceil(math.sqrt(x.shape[0]/3)))
+            x = torch.from_numpy(x.reshape(3,dim_x,dim_x))
+            y = int.from_bytes(deser_y, 'little')
+            sample = y
+            # insertion_time = datetime.now()
+            # insertion_time = insertion_time.strftime("%H:%M:%S")
+            # print("train_search_index: %d time: %s" %(index, insertion_time))
 
             if index in self.ghost_cache:
                 print('miss %d' %(index))
@@ -189,7 +211,7 @@ class ShadeDataset(Dataset):
 
         sample = self.cache_and_evict(index)
         target = y
-        
+
         if self.transform is not None:
             sample = self.transform(sample)
         if self.target_transform is not None:
