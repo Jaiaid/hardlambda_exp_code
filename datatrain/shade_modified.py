@@ -17,6 +17,7 @@ import torch.distributed as dist
 
 import os
 import time
+import yaml
 from datetime import datetime
 import argparse
 #import torchvision
