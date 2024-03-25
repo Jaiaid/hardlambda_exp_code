@@ -181,7 +181,7 @@ def main():
 
 def main_worker(gpu, ngpus_per_node, args, arch):
     global data_mover, benchmark_data_dict
-    try:
+    
     args.gpu = gpu
 
     if args.gpu is not None:
