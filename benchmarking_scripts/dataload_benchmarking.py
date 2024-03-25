@@ -277,7 +277,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         # starting the background data mover service
         data_mover_service = subprocess.Popen(
             """python3 {2}/../datatrain/DataMovementService.py --seqno {0}
-            -cn 10.21.12.239 26379 10.21.12.239 26380 10.21.12.222 26379 -pn 10.21.12.239 10.21.12.222 -p {1}""".format(
+            -cn 10.21.12.241 26379 10.21.12.241 26380 10.21.12.222 26379 -pn 10.21.12.241 10.21.12.222 -p {1}""".format(
                 args.rank if args.rank < 3 else 2, args.port_mover, os.path.dirname(os.path.abspath(__file__)), args.batch_size).split()
         )
         # check if running
