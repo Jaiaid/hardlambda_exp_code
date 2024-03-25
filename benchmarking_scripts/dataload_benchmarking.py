@@ -60,6 +60,8 @@ parser.add_argument('-b', '--batch-size', default=256, type=int,
                     help='mini-batch size (default: 256), this is the total '
                          'batch size of all GPUs on the current node when '
                          'using Data Parallel or Distributed Data Parallel')
+parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
+                    help='number of data loading workers (default: 4)')
 parser.add_argument('--epochs', default=10, type=int, metavar='N',
                     help='number of total epochs to run')
 parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
@@ -181,7 +183,7 @@ def main():
 
 def main_worker(gpu, ngpus_per_node, args, arch):
     global data_mover, benchmark_data_dict
-    
+
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -211,7 +213,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         # DistributedDataParallel will use all available devices.
         if torch.cuda.is_available():
             if args.gpu is not None:
-                torch.cuda.set_device(args.gpu)
+                # torch.cuda.set_device(args.gpu)
                 model.cuda(args.gpu)
                 # When using a single GPU per process and per
                 # DistributedDataParallel, we need to divide the batch size
