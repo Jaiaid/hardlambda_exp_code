@@ -96,7 +96,7 @@ class SharedDistRedisPool(Dataset):
         # determine which one contains the data
         select_redis_client = self.cache_connection_list[-1][0]
         select_offset = self.cache_connection_list[-1][1]
-        select_querycache_key = self.cache_connection_list[-1][2]
+        select_querycache_key = self.cache_connection_list[-1][3]
         for i in range(len(self.cache_connection_list)-1):
             if self.cache_connection_list[i][1] <= index and index < self.cache_connection_list[i+1][1]:
                 select_redis_client = self.cache_connection_list[i][0]
