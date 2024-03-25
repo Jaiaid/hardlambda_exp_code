@@ -287,7 +287,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
             print("data mover service is running")
     else:
         data_sampler = DefaultDistributedSampler(
-            dataset=dataset, num_caches=args.world_size)
+            dataset=dataset, num_replicas=args.world_size)
 
     # edited for custom data loading
     train_loader = DatasetPipeline(dataset=dataset, batch_size=args.batch_size,
