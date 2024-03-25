@@ -104,17 +104,19 @@ class GradualDistAwareDistributedSamplerBG():
         self.rank = rank
 
     def __iter__(self) -> Iterator[T_co]:
-        if self.first_time:
-            num_batch_per_cache = int(self.total_size / (self.num_caches * self.batch_size))
-            # we are not modding this for batch generation logic simplification
-            end_idx = num_batch_per_cache
-            indices = list(range(self.rank * num_batch_per_cache * self.batch_size,
-                              self.rank * num_batch_per_cache * self.batch_size + end_idx * self.batch_size))
-            # local shuffling
-            random.seed(self.epoch + self.rank)
-            random.shuffle(indices)
-            self.iterator = iter(indices)
-            self.first_time = False
+        final_indices = []
+        start_cache = self.rank
+
+        num_batch_per_cache = int(self.total_size / (self.num_caches * self.batch_size))
+        # we are not modding this for batch generation logic simplification
+        end_idx = num_batch_per_cache
+        indices = list(range(self.rank * num_batch_per_cache * self.batch_size,
+                            self.rank * num_batch_per_cache * self.batch_size + end_idx * self.batch_size))
+        # local shuffling
+        random.seed(self.epoch + self.rank)
+        random.shuffle(indices)
+
+        self.iterator = iter(indices)
         return self.iterator
         
     def set_batch_time(self, batch_no:int, read_time:float):

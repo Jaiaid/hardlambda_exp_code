@@ -190,18 +190,19 @@ class GraddistBGPipeline():
         self.sampler.set_epoch(epoch)
 
     def __iter__(self):
-        x_list = []
-        y_list = []
-        for i in range(self.batch_size):
-            idx = next(self.sampler.__iter__())
-            x, y = self.dataloader.dataset[idx]
-            x_list.append(x)
-            y_list.append(y)
+        # x_list = []
+        # y_list = []
+        # for i in range(self.batch_size):
+        #     idx = next(self.sampler.__iter__())
+        #     x, y = self.dataloader.dataset[idx]
+        #     x_list.append(x)
+        #     y_list.append(y)
         
-        self.count += 1
-        # if self.count % self.sampler.batch_size == 0 and idx>0:
-        #     self.sampler.data_mover.updatecache((idx-1)//self.sampler.batch_size)
-        yield torch.stack(x_list, dim=0), torch.tensor(y_list, dtype=torch.long).reshape(self.batch_size)
+        # self.count += 1
+        # # if self.count % self.sampler.batch_size == 0 and idx>0:
+        # #     self.sampler.data_mover.updatecache((idx-1)//self.sampler.batch_size)
+        # yield torch.stack(x_list, dim=0), torch.tensor(y_list, dtype=torch.long).reshape(self.batch_size)
+        return self.dataloader._get_iterator()
 
     def dump_data_read_freq(self, output_file_path:str):
         self.sampler.dump_data_read_freq(output_file_path=output_file_path)
