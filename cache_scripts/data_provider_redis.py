@@ -48,7 +48,7 @@ class SharedDataRedis():
         for i, data in enumerate(self.train_dataset):
             if i < dataoffset:
                 continue
-            if dataset == "imagenet" and stored_count == cachesize:
+            if stored_count == cachesize:
                 break
             # Serialize the tensor to binary
             input, label= data
