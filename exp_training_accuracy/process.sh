@@ -19,5 +19,5 @@ if [[ $RANK -eq 0 ]]
 then
 time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/model_accuracy_measure.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -ipm $DMOVERIP -portm $DMOVERPORT > rank0_accuracy_${NETARCH}_${SAMPLER}.log
 else
-time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/model_accuracy_measure.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -ipm $DMOVERIP -portm $DMOVERPORT
+time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/model_accuracy_measure.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -ipm $DMOVERIP -portm $DMOVERPORT > /dev/null
 fi
