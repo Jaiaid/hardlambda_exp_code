@@ -4,6 +4,8 @@ JOBLISTFILE=$1
 
 jobcount=0
 # read the hostfile
+# create a worker file which will run the inteneded script with intended args on intended host
+# first pass create the script and copy it to intended place
 while read -r line; do
     jobargs=()
     for arg in $line; do
@@ -28,6 +30,7 @@ while read -r line; do
     rm worker_${jobcount}.sh
 done < $JOBLISTFILE
 
+# another pass to run the copied script
 jobcount=0
 while read -r line; do
     jobargs=()
@@ -42,6 +45,7 @@ while read -r line; do
     workdir=${jobargs[2]}
     cmdstr='cd '${workdir}';bash 'worker_${jobcount}.sh
     echo $cmdstr
+    # forking otherwise will be stuck
     ssh -p 1440 $ip $cmdstr &
     PID=$!
 done < $JOBLISTFILE
