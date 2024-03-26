@@ -13,4 +13,7 @@ RANK=$10
 DMOVERIP=$11
 DMOVERPORT=$12
 
-time numactl --cpunodebind=0 --membind=0 python3 benchmarking_scripts/dataload_benchmarking.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -ipm $DMOVERIP -portm $DMOVERPORT
+# to activate virtual environment
+source ../../venv/bin/activate
+
+time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/dataload_benchmarking.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -ipm $DMOVERIP -portm $DMOVERPORT
