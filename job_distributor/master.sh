@@ -46,7 +46,7 @@ while read -r line; do
     cmdstr='cd '${workdir}';bash 'worker_${jobcount}.sh
     echo $cmdstr
     # forking otherwise will be stuck
-    ssh -p 1440 $ip $cmdstr &
+    ssh -p $port $ip $cmdstr &
     PID=$!
 done < $JOBLISTFILE
 
