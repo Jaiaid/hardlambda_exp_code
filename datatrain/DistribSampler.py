@@ -118,6 +118,9 @@ class GradualDistAwareDistributedSamplerBG():
 
         self.iterator = iter(indices)
         return self.iterator
+    
+    def __len__(self):
+        return int(len(self.dataset)/(self.num_caches*self.batch_size))
         
     def set_batch_time(self, batch_no:int, read_time:float):
         idx = batch_no
