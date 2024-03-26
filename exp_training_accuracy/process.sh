@@ -9,9 +9,9 @@ EPOCH=$6
 WORLD=$7
 DISTURL=$8
 IFACE=$9
-RANK=$10
-DMOVERIP=$11
-DMOVERPORT=$12
+RANK=${10}
+DMOVERIP=${11}
+DMOVERPORT=${12}
 
 source ../../venv/bin/activate
 
