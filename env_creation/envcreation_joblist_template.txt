@@ -1,0 +1,4 @@
+<node 0 ip> <from which directory following script will be run> envcreation.sh <dir containing code repo and venv>
+<node 1 ip> <from which directory following script will be run> envcreation.sh <dir containing code repo and venv>
+<node 2 ip> <from which directory following script will be run> envcreation.sh <dir containing code repo and venv>
+<node 3 ip> <from which directory following script will be run> envcreation.sh <dir containing code repo and venv>
