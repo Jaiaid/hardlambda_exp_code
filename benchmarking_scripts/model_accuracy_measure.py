@@ -179,7 +179,7 @@ def main_worker(gpu, ngpus_per_node, args):
             args.rank = args.rank * ngpus_per_node + gpu
         # added following
         # https://github.com/pytorch/torchrec/issues/328
-        torch.cuda.set_device(args.rank)
+        torch.cuda.set_device(args.rank%ngpus_per_node)
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
     # create model
