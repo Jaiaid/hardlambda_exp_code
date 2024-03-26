@@ -314,13 +314,13 @@ def main_worker(gpu, ngpus_per_node, args):
     elif args.dataset == "cifar10":
         transform = transforms.Compose([
             transforms.ToTensor(),               # Convert images to PyTorch tensors
-            transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010],)  # Normalize to mean 0 and standard deviation 1
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5],)  # Normalize to mean 0 and standard deviation 1
         ])
         val_dataset = datasets.CIFAR10(root=".", train=False, transform=transform, download=True)
     elif args.dataset == "cifar100":
         transform = transforms.Compose([
             transforms.ToTensor(),               # Convert images to PyTorch tensors
-            transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010],)  # Normalize to mean 0 and standard deviation 1
+            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5],)  # Normalize to mean 0 and standard deviation 1
         ])
         val_dataset = datasets.CIFAR100(root=".", train=False, transform=transform, download=True)
 
