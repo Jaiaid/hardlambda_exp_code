@@ -13,6 +13,7 @@ RANK=${10}
 DMOVERIP=${11}
 DMOVERPORT=${12}
 
+# to activate virtual environment
 source ../../venv/bin/activate
 
 if [[ $RANK -eq 0 ]]
