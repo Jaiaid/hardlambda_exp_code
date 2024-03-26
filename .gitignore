@@ -10,3 +10,5 @@
 **/__pycache__
 **/cpython
 **/venv
+**/*.tar.gz
+**/cifar-10-batches-py
