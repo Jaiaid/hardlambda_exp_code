@@ -5,13 +5,13 @@ ROOT_DIR=..
 BS=$1
 EPOCH=$2
 
-for NETARCH in mobilenet_v2 resnet18 resnet50 efficientnet_b1;do
+for NETARCH in mobilenet_v2 resnet18 resnet50 efficientnet_b1 vgg16;do
     for SAMPLER in default dali shade graddistbg;do
-        # the interface should be changed according to which interface we will be using
-        # here the private network 10.21.12.0/24 is on eno2
-        # numa node 0
-        time numactl --cpunodebind=0 --membind=0 python3 $ROOT_DIR/benchmarking_scripts/dataload_benchmarking.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size 2 --gpu 0 --dist-url tcp://10.21.12.241:44144 -if eno2 --rank 0 -ipm 127.0.0.1 -portm 50524 &
-        # numa node 1
-        time numactl --cpunodebind=1 --membind=1 python3 $ROOT_DIR/benchmarking_scripts/dataload_benchmarking.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size 2 --gpu 1 --dist-url tcp://10.21.12.241:44144 -if eno2 --rank 1 -ipm 127.0.0.1 -portm 50525 > /dev/null
+        sed "s/NETARCH/"$NETARCH"/" system_2a4000_1p1000.txt > system_2a4000_1p1000_tmp.txt
+        sed -i "s/SAMPLER/"$SAMPLER"/" system_2a4000_1p1000_tmp.txt
+        sed -i "s/BS/"$BS"/" system_2a4000_1p1000_tmp.txt
+        sed -i "s/EPOCH/"$EPOCH"/" system_2a4000_1p1000_tmp.txt
+        $ROOT_DIR/job_distributor/master.sh system_2a4000_1p1000_tmp.txt
+        rm system_2a4000_1p1000_tmp.txt
     done
 done
