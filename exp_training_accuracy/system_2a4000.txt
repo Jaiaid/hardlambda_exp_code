@@ -1,3 +1,2 @@
-129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/ cache.yaml
-129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/ process.sh 0 0 NETARCH SAMPLER BS EPOCH 2 tcp://10.21.12.241:44144 eno2 0 127.0.0.1 50524
-129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/ process.sh 1 1 NETARCH SAMPLER BS EPOCH 2 tcp://10.21.12.241:44144 eno2 1 127.0.0.1 50525
+129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/exp_training_accuracy process.sh 0 0 NETARCH SAMPLER BS EPOCH 2 tcp://10.21.12.241:44144 eno2 0 127.0.0.1 50524
+129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/exp_training_accuracy process.sh 1 1 NETARCH SAMPLER BS EPOCH 2 tcp://10.21.12.241:44144 eno2 1 127.0.0.1 50525
