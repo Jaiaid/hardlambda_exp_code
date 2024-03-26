@@ -165,7 +165,7 @@ def main():
     # only rank 0 process will do that
     if args.rank == 0:
         with open("benchmark_iteration_step.tsv", "a") as fout:
-            fout.write("Network Arch\tBatch Size\tImage Size\tEpoch\tSampler\tdataload time\tdata process time\tcache update time\texec time\trss(MiB)\tvms(MiB)\tmax rss(MiB)\tmax vms(MiB)\n")
+            # fout.write("Network Arch\tBatch Size\tImage Size\tEpoch\tSampler\tdataload time\tdata process time\tcache update time\texec time\trss(MiB)\tvms(MiB)\tmax rss(MiB)\tmax vms(MiB)\n")
             datatime = benchmark_data_dict[network_arch][sampler][0]
             cache_time = benchmark_data_dict[network_arch][sampler][1]
             processtime = benchmark_data_dict[network_arch][sampler][2]
