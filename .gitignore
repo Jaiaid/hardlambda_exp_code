@@ -12,3 +12,4 @@
 **/venv
 **/*.tar.gz
 **/cifar-10-batches-py
+**/cifar-100-batches-py
