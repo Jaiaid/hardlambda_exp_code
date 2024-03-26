@@ -325,9 +325,9 @@ def main_worker(gpu, ngpus_per_node, args):
         val_dataset = datasets.CIFAR100(root=".", train=False, transform=transform, download=True)
 
     # if args.distributed:
-        # train sampler is special the system we are working on
-        # train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-        # val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False, drop_last=True)
+    #     # train sampler is special the system we are working on
+    #     train_sampler = torch.utils.data.distributed.DistributedSampler(dataset)
+    #     val_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset, shuffle=False, drop_last=True)
     # else:
     #     train_sampler = None
     #     val_sampler = None
@@ -384,11 +384,11 @@ def main_worker(gpu, ngpus_per_node, args):
                 'optimizer' : optimizer.state_dict(),
                 'scheduler' : scheduler.state_dict()
             }, is_best)
-    if args.sampler != "shade":
-        index_query_stat = dataset.get_index_query_stat()
-        with open("rank{0}_{1}_queried_idx.log".format(args.rank, args.sampler), "w") as fin:
-            for idx in index_query_stat:
-                fin.write("{0} {1}\n".format(idx, index_query_stat[idx]))
+    # if args.sampler != "shade":
+    #     index_query_stat = dataset.get_index_query_stat()
+    #     with open("rank{0}_{1}_queried_idx.log".format(args.rank, args.sampler), "w") as fin:
+    #         for idx in index_query_stat:
+    #             fin.write("{0} {1}\n".format(idx, index_query_stat[idx]))
 
     if args.sampler == "graddistbg":
         data_mover.close()
