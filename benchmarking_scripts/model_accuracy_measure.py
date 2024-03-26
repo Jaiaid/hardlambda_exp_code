@@ -401,6 +401,8 @@ def main_worker(gpu, ngpus_per_node, args):
         redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
         redis_client.flushdb()
 
+    print(dataset.get_query_stat())
+
 def train(train_loader, model, criterion, optimizer, epoch, device, args):
     global data_mover
     batch_time = AverageMeter('Time', ':6.3f')
