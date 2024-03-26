@@ -1,5 +1,7 @@
 #!/bin/bash
 
+JOBLISTFILE=$1
+
 jobcount=0
 # read the hostfile
 while read -r line; do
@@ -24,7 +26,7 @@ while read -r line; do
     script=${jobargs[3]}
     scp -P $port worker_${jobcount}.sh $script $ip:$workdir
     rm worker_${jobcount}.sh
-done < hostargslist.txt
+done < $JOBLISTFILE
 
 jobcount=0
 while read -r line; do
@@ -42,9 +44,13 @@ while read -r line; do
     echo $cmdstr
     ssh -p 1440 $ip $cmdstr &
     PID=$!
-done < hostargslist.txt
+done < $JOBLISTFILE
 
+# assumption is all job will complete near same time
+# therefore checking only one's pid is good enough
 while ps -p ${PID} > /dev/null
 do
 	sleep 1
 done
+# 30s sleep for extra safety
+sleep 30
