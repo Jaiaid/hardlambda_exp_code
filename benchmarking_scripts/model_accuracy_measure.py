@@ -108,7 +108,7 @@ parser.add_argument("-portm", "--port_mover", type=str, help="data move service 
 # parameter synchornization modification related
 parser.add_argument("-esync", "--epoch-sync", action='store_true', help="use to sync gradient at epoch boundary")
 # which dataset to use
-parser.add_argument("-dset", "--dataset", choices=["cifar10", "cifar100", "imagenet"], default="imagenet", help="use to sync gradient at epoch boundary")
+parser.add_argument("-dset", "--dataset", choices=["cifar10", "cifar100", "imagenet"], default="cifar10", help="use to sync gradient at epoch boundary")
 
 
 best_acc1 = 0
