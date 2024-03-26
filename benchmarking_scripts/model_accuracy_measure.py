@@ -119,6 +119,7 @@ def main():
 
     iface = args.iface
     os.environ["GLOO_SOCKET_IFNAME"] = str(iface)
+    args.seed = 3400
 
     if args.seed is not None:
         random.seed(args.seed)
