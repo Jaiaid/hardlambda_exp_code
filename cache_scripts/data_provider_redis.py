@@ -18,14 +18,14 @@ class SharedDataRedis():
         if dataset == "cifar10":
             transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
-                torchvision.transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010],)  # Normalize to mean 0 and standard deviation 1
+                torchvision.transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5],)  # Normalize to mean 0 and standard deviation 1
             ])
 
             self.train_dataset = torchvision.datasets.CIFAR10(root=".", train=True, transform=transform, download=True)
         elif dataset == "cifar100":
             transform = torchvision.transforms.Compose([
                 torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
-                torchvision.transforms.Normalize(mean=[0.4914, 0.4822, 0.4465], std=[0.2023, 0.1994, 0.2010],)  # Normalize to mean 0 and standard deviation 1
+                torchvision.transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5],)  # Normalize to mean 0 and standard deviation 1
             ])
 
             self.train_dataset = torchvision.datasets.CIFAR100(root=".", train=True, transform=transform, download=True)
