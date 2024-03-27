@@ -14,7 +14,8 @@ COMPLETIONCODE=$?
 
 if [[ $COMPLETIONCODE -eq 0 ]]
 then
-    source venv/bin/activate & python3 -m pip install --no-cache-dir -r hardlambda_exp_code/requirements.txt
+    source venv/bin/activate
+    python3 -m pip install --no-cache-dir -r hardlambda_exp_code/requirements.txt
 else
     echo "virtualenv creation failed"
 fi
