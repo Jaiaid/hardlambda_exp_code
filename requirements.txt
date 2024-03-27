@@ -9,7 +9,7 @@ MarkupSafe
 mpmath
 networkx
 numpy
-nvidia-dali-cuda120
+--extra-index-url https://pypi.nvidia.com --upgrade nvidia-dali-cuda120
 pillow
 psutil
 redis
@@ -18,5 +18,4 @@ six
 sympy
 torch
 torchvision
-triton
 typing_extensions
