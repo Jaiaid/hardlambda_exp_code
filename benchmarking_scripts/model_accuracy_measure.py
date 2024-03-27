@@ -400,8 +400,8 @@ def main_worker(gpu, ngpus_per_node, args):
         redis_port = 6379  # Change this to your Redis server's port
         redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
         redis_client.flushdb()
-
-    print(dataset.get_query_stat())
+    if args.sampler != "shade":
+        print(dataset.get_query_stat())
 
 def train(train_loader, model, criterion, optimizer, epoch, device, args):
     global data_mover
