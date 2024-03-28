@@ -1,24 +1,35 @@
 #!/bin/bash
 
 ROOT_DIR=..
-CACHE_SIZE=$1
-CPU_NODE=$2
-MEM_NODE=$3
-REDIS_PORT=$4
-DATASET_TYPE=$5
-DATASET=$6
-OFFSET=$7
-SEQNO=$8
-BATCH_SIZE=$9
-CACHEDESC_FILE=$10
-$DMOVE_PORT$11
+CPU_NODE=$1
+MEM_NODE=$2
+DATASET_TYPE=$3
+DATASETROOT=$4
+CACHE_SIZE=$5
+OFFSET=$6
+IMAGEDIM=$7
+REDIS_PORT=$8
+SEQNO=$9
+CACHEDESC_FILE=${10}
 
 
+# kill the existing redis-server
+for pid in `lsof -i -P -n | grep "redis-ser" | awk -F' ' '{ print $2 }' | tail -n +2`;do
+    kill $pid
+done
+# kill if previous associated python service is still holding the port
+
+sleep 10
+
+# to activate virtual environment
+source ../../venv/bin/activate
 # create configuration
-sed "92s/port 6379/port "$REDIS_PORT"/" redis.conf > redis_out.conf
-sed -i "88s/protected-mode yes/protected-mode no/" redis_out.conf
+sed "92s/port 6379/port "$REDIS_PORT"/" redis.conf > redis_out$REDIS_PORT.conf
+sed -i "88s/protected-mode yes/protected-mode no/" redis_out$REDIS_PORT.conf
 # numa node pool
-time numactl --cpunodebind=$CPU_NODE --membind=$MEM_NODE  redis-server redis_out.conf &
-python3 $ROOT_DIR/cache_scripts/data_provider_redis.py -data $DATASET_TYPE -root $DATASET -size $CACHE_SIZE -offset $OFFSET -conf redis_out.conf -p $REDIS_PORT &
+time numactl --cpunodebind=$CPU_NODE --membind=$MEM_NODE  redis-server redis_out$REDIS_PORT.conf &
+python3 $ROOT_DIR/cache_scripts/data_provider_redis.py -data $DATASET_TYPE -root $DATASETROOT -dim $IMAGEDIM -size $CACHE_SIZE -offset $OFFSET -conf redis_out.conf -p $REDIS_PORT &
+# give some time to create and occupy the port
+sleep 2
 # create the movement service
-python3 $ROOT_DIR/cache_scripts/DataMovementService.py --seqno $SEQNO -bs $BATCH_SIZE -cdesc $CACHEDESC_FILE -pn 10.21.12.239 10.21.12.222 -p $DMOVE_PORT
+python3 $ROOT_DIR/cache_scripts/DataMovementService.py --seqno $SEQNO -cdesc $CACHEDESC_FILE &
