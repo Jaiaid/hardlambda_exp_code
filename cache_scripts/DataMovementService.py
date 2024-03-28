@@ -262,10 +262,6 @@ if __name__ == "__main__":
     # get arguments
     args = parser.parse_args()
 
-    cache_nodes_processed = []
-    for i in range(0, len(args.cache_nodes), 2):
-        cache_nodes_processed.append(("".join(args.cache_nodes[i]), "".join(args.cache_nodes[i+1])))
-
     service = DataMoverService()
     # start
     service.start(
