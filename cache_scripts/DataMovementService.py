@@ -51,7 +51,8 @@ class DataMoverService():
                 databytes = redis_client.get("data"+str(i%redis_client_size))
                 labelbytes = redis_client.get("label"+str(i%redis_client_size))
                 total_byte_read += len(databytes) + len(labelbytes)
-            latency_data[cacheid] = total_byte_read / (time.time() - query_time_start)
+            # latency per byte
+            latency_data[cacheid] = (time.time() - query_time_start) / total_byte_read
 
         return latency_data
     
