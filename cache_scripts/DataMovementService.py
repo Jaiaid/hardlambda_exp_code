@@ -27,7 +27,7 @@ class DataMoverService():
                 time.sleep(2)
             except redis.exceptions.ConnectionError:
                 _thread.interrupt_main()
-                os._exit(0)
+                break
 
     def connect_to_cache(self):
         """implementation for redis cache"""
