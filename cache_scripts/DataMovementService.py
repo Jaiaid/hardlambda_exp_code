@@ -235,12 +235,16 @@ class DataMoverService():
         print("starting health check thread")
         health_check_thread = threading.Thread(target=DataMoverService.healthchecker, args=(self.cache_node_dict[0][5],))
         health_check_thread.start()
-
-        print("starting interface to client")
-        # block until connection established
-        self.server_socket.listen(1)
-        # got connectino from trainer process
-        self.trainer_socket, self.trainer_address = self.server_socket.accept()
+        try:
+            print("starting interface to client")
+            # block until connection established
+            self.server_socket.listen(1)
+            # got connectino from trainer process
+            self.trainer_socket, self.trainer_address = self.server_socket.accept()
+        except Exception as e:
+            print("Exception recieved ", e)
+            print("exiting...")
+            self.server_socket.close()
 
     def updatecache(self, batch_no: int) -> None:
         for i in range(batch_no * self.batch_size, (batch_no + 1) * self.batch_size):
