@@ -43,7 +43,7 @@ class DataMoverService():
         for cacheid in self.cache_node_dict:
             redis_client = self.cache_node_dict[cacheid][5]
             redis_client_size = self.cache_node_dict[cacheid][3]
-            
+
             # query loop
             query_time_start = time.time()
             total_byte_read = 0
@@ -90,6 +90,9 @@ class DataMoverService():
                 if peerid == i:
                     cacheupdate_source_nodeid = chain[(pos+1)%len(chain)]
                     if i != 0:
+                        # close that redis connection
+                        self.cache_node_dict[cacheupdate_source_nodeid][5].close()
+                        # send the data
                         peer_socket = peer_connection_list[i]
                         peer_socket.send(int.to_bytes(cacheupdate_source_nodeid, length=4, byteorder="little"))
                     else:
@@ -129,6 +132,12 @@ class DataMoverService():
             self.getcache_idx = self.get_chain_data(connection_socket=connection_socket)
             print("sync with cache 0 is done, closing connection...")
             connection_socket.close()
+            print("closing extra opened redis connections")
+            # we need only the seq no and getcache_idx
+            for i in self.cache_node_dict:
+                if i == self.seqno or i == self.getcache_idx:
+                    continue
+                self.cache_node_dict[i][5].close()
         else:
             peer_connection_list = [None] * len(self.cache_node_dict)
             # there will be n-1 connection if there are total n nodes
