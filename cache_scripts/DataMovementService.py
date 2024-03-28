@@ -138,6 +138,7 @@ class DataMoverService():
                 peer_socket, _ = self.server_socket.accept()
                 # first recv the peer seqno
                 peerseqno = int.from_bytes(peer_socket.recv(4), "little")
+                print("peer {0} has connected to do sync".format(peerseqno))
                 peer_connection_list[peerseqno] = peer_socket
             # collecting latency data
             print("collecting latency data")
