@@ -153,9 +153,15 @@ class DataMoverService():
             # collecting latency data
             print("collecting latency data")
             latency_matrix = self.create_latency_matrix(peer_connection_list, self_latency_data)
+            print("got following latency matrix")
+            for row in latency_matrix:
+                print(row)
+            
             # generate mindist chain
             print("generating sequence")
             chain = mindist_chain.generate_mindistchain(distmatrix=latency_matrix)
+            print("proposed method's sequence of cache is following")
+            print(chain)
 
             # now send the chain information to all
             print("sending chain information to all")
