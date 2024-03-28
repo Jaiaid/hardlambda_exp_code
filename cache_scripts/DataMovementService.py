@@ -167,14 +167,21 @@ class DataMoverService():
     def start(self, cachedesc_filepath: str, seqno:int) -> None:
         self.batch_size = 1
         self.getcache_idx = 0
-        # parse the file for global info on the caches
-        self.cache_node_dict = self.parse_cachedesc(cachefilepath=cachedesc_filepath)
         # sequence no
         self.seqno = seqno
+
+        # parse the file for global info on the caches
+        self.cache_node_dict = self.parse_cachedesc(cachefilepath=cachedesc_filepath)
         # get self ip
         self.ip = self.cache_node_dict[seqno][0]
         # get the port where every one will connect or you will connect to everyone
         self.port = self.cache_node_dict[seqno][4]
+        # first start your server at standard port, so trainer process can notify
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        # bind it to port
+        self.server_socket.bind((self.ip, self.port))
+
+
         # start connection to cache (redis server)
         print("creating client to each cache")
         self.connect_to_cache()
