@@ -123,9 +123,9 @@ class DataMoverService():
                     time.sleep(1)
             
             print("sending latency data")
-            connection = self.send_latency_data(connection_socket=connection_socket, latency_data_list=self_latency_data)
+            self.send_latency_data(connection_socket=connection_socket, latency_data_list=self_latency_data)
             print("getting chain data")
-            self.getcache_idx = self.get_chain_data(connection)
+            self.getcache_idx = self.get_chain_data(connection_socket=connection_socket)
             print("sync with cache 0 is done, closing connection...")
             connection_socket.close()
         else:
