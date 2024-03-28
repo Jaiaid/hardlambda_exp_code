@@ -57,10 +57,9 @@ class DataMoverService():
     
     def send_latency_data(self, connection_socket, latency_data_list):
         # first send self id/seqno
-        print("sending seqno {0} to cache 0 service".format(self.seqno))
-        connection_socket.send(int.to_bytes(self.seqno, "little"))
+        connection_socket.send(int.to_bytes(self.seqno, length=4, byteorder="little"))
         # then send  number of peer of whom sending the latency data
-        connection_socket.send(int.to_bytes(len(latency_data_list), "little"))
+        connection_socket.send(int.to_bytes(len(latency_data_list), length=4, byteorder="little"))
         # send all the latency data
         for latency in latency_data_list:
             connection_socket.send(struct.pack('d', latency))
@@ -91,7 +90,7 @@ class DataMoverService():
                     cacheupdate_source_nodeid = chain[(pos+1)%len(chain)]
                     if i != 0:
                         peer_socket = peer_connection_list[i]
-                        peer_socket.send(int.to_bytes(cacheupdate_source_nodeid, "little"))
+                        peer_socket.send(int.to_bytes(cacheupdate_source_nodeid, length=4, byteorder="little"))
                     else:
                         self.getcache_idx = cacheupdate_source_nodeid
 
