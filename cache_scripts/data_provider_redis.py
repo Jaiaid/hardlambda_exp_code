@@ -16,17 +16,31 @@ class SharedDataRedis():
         # the normalization mean and std for cifar10,100 got from
         # https://gist.github.com/kevinzakka/d33bf8d6c7f06a9d8c76d97a7879f5cb
         if dataset == "cifar10":
-            transform = torchvision.transforms.Compose([
-                torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
-                torchvision.transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5],)  # Normalize to mean 0 and standard deviation 1
-            ])
+            if imgsize == 32:
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
+                    torchvision.transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5],)  # Normalize to mean 0 and standard deviation 1
+                ])
+            else:
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.Resize(imgsize),
+                    torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
+                    torchvision.transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5],)  # Normalize to mean 0 and standard deviation 1
+                ])
 
             self.train_dataset = torchvision.datasets.CIFAR10(root=".", train=True, transform=transform, download=True)
         elif dataset == "cifar100":
-            transform = torchvision.transforms.Compose([
-                torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
-                torchvision.transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5],)  # Normalize to mean 0 and standard deviation 1
-            ])
+            if imgsize == 32:
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
+                    torchvision.transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5],)  # Normalize to mean 0 and standard deviation 1
+                ])
+            else:
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.Resize(imgsize),
+                    torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
+                    torchvision.transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5],)  # Normalize to mean 0 and standard deviation 1
+                ])
 
             self.train_dataset = torchvision.datasets.CIFAR100(root=".", train=True, transform=transform, download=True)
         elif dataset == "imagenet":
