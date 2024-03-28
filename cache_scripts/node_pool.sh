@@ -18,6 +18,10 @@ for pid in `lsof -i -P -n | grep "redis-ser" | awk -F' ' '{ print $2 }' | tail -
     kill $pid
 done
 # kill if previous associated python service is still holding the port
+# kill the existing redis-server
+for pid in `lsof -i -P -n | grep "python3" | awk -F' ' '{ print $2 }'`;do
+    kill $pid
+done
 
 sleep 10
 
