@@ -187,14 +187,15 @@ class DataMoverService():
         self.connect_to_cache()
         print("collecting latency data to each cache")
         lateny_data = self.collect_latency_data()
-        print("startin service listener")
+
+        print("proceeding to sync globally about the latency")
+        self.global_sequence_sync()
+
+        print("starting interface to client")
         # block until connection established
         self.server_socket.listen(1)
         # got connectino from trainer process
         self.trainer_socket, self.trainer_address = self.server_socket.accept()
-
-        print("proceeding to sync globally about the latency")
-        self.global_sequence_sync()
 
     def updatecache(self, batch_no: int) -> None:
         for i in range(batch_no * self.batch_size, (batch_no + 1) * self.batch_size):
