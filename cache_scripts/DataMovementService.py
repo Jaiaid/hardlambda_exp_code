@@ -75,7 +75,7 @@ class DataMoverService():
             peer_socket = peer_connection_list[i]
             peercount = int.from_bytes(peer_socket.recv(4), "little")
             for j in range(peercount):
-                latency = struct.unpack('d', peer_socket.recv(8))
+                latency = struct.unpack('d', peer_socket.recv(8))[0]
                 latency_matrix[i].append(latency)
 
         return latency_matrix
