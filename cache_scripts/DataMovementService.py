@@ -1,4 +1,5 @@
 import socket
+import threading
 import struct
 import yaml
 import redis
@@ -12,6 +13,16 @@ class DataMoverService():
     MAXCMD_SIZE = 16
     INTSIZE = 4
     FLOATSIZE = 8
+    
+    @staticmethod
+    def healthchecker(cacheconnection):
+        # make a query to the cache
+        # if fail exit everything
+        # at least there will be following data
+        while True:
+            cacheconnection.get("label0")
+            # check each 2s
+            time.sleep(2)
 
     def connect_to_cache(self):
         """implementation for redis cache"""
@@ -215,6 +226,11 @@ class DataMoverService():
 
         print("proceeding to sync globally about the latency")
         self.global_sequence_sync(self_latency_data=latency_data)
+
+        # start a health check thread
+        print("starting health check thread")
+        health_check_thread = threading.Thread(target=DataMoverService.healthchecker, args=(self.cache_node_dict[0][5],))
+        health_check_thread.start()
 
         print("starting interface to client")
         # block until connection established
