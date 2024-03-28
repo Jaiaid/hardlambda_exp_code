@@ -1,5 +1,6 @@
 import socket
-import threading
+import os
+import threading, _thread
 import struct
 import yaml
 import redis
@@ -20,9 +21,13 @@ class DataMoverService():
         # if fail exit everything
         # at least there will be following data
         while True:
-            cacheconnection.get("label0")
-            # check each 2s
-            time.sleep(2)
+            try:
+                cacheconnection.get("label0")
+                # check each 2s
+                time.sleep(2)
+            except redis.exceptions.ConnectionError:
+                _thread.interrupt_main()
+                os._exit(0)
 
     def connect_to_cache(self):
         """implementation for redis cache"""
@@ -216,7 +221,6 @@ class DataMoverService():
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         # bind it to port
         self.server_socket.bind((self.ip, self.port))
-
 
         # start connection to cache (redis server)
         print("creating client to each cache")
