@@ -257,7 +257,7 @@ class DataMoverServiceInterfaceClient():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-sno", "--seqno", type=int, help="which cache idx it will consider local", required=True)
-    parser.add_argument("-cachedesc", "--cache-descriptor", type=str, help="yaml file describing caches", default="cache.yaml", required=False)
+    parser.add_argument("-cdesc", "--cache-descriptor", type=str, help="yaml file describing caches", default="cache.yaml", required=False)
 
     # get arguments
     args = parser.parse_args()
