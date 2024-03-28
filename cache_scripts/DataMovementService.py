@@ -16,10 +16,22 @@ class DataMoverService():
     def connect_to_cache(self):
         """implementation for redis cache"""
         for cacheid in self.cache_node_dict:
-            cacheip = self.cache_node_dict[cacheid][0]
-            cacheport = self.cache_node_dict[cacheid][1]
-            self.cache_node_dict[cacheid].append(
-                redis.StrictRedis(host=cacheip, port=cacheport, db=0))
+            # the cache may come back online at delay
+            # keep trying for 100s
+            connection_refused_count = 0
+            while connection_refused_count < 100:
+                try:
+                    cacheip = self.cache_node_dict[cacheid][0]
+                    cacheport = self.cache_node_dict[cacheid][1]
+                    self.cache_node_dict[cacheid].append(
+                        redis.StrictRedis(host=cacheip, port=cacheport, db=0))
+                    break
+                except ConnectionError as e:
+                    connection_refused_count += 1
+                    print("connection establish attempt {0} to {1}:{2} failed at cahche no {3}".format(
+                        connection_refused_count, cacheip, cacheport, self.seqno))
+                    # sleep for a second
+                    time.sleep(1)
             
     def collect_latency_data(self):
         # how to collect?
@@ -94,6 +106,7 @@ class DataMoverService():
             serviceport = self.cache_node_dict[0][4]
             # create connection
             # it will try for 100s
+            connection_refused_count = 0
             while connection_refused_count < 100: 
                 try:
                     connection_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
