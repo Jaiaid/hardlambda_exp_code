@@ -17,7 +17,7 @@ class DataMoverService():
         """implementation for redis cache"""
         for cacheid in self.cache_node_dict:
             cacheip = self.cache_node_dict[cacheid][0]
-            cacheport = self.cache_node_dict[cacheid][0]
+            cacheport = self.cache_node_dict[cacheid][1]
             self.cache_node_dict[cacheid].append(
                 redis.StrictRedis(host=cacheip, port=cacheport, db=0))
             
