@@ -93,8 +93,18 @@ class DataMoverService():
             ip = self.cache_node_dict[0][0]
             serviceport = self.cache_node_dict[0][4]
             # create connection
-            connection_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            connection_socket.connect((ip, int(serviceport)))
+            # it will try for 100s
+            while connection_refused_count < 100: 
+                try:
+                    connection_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                    connection_socket.connect((ip, int(serviceport)))
+                    break
+                except ConnectionError as e:
+                    connection_refused_count += 1
+                    print("connection establish attempt to {0} failed at cahche no {1}".format(connection_refused_count, ip, serviceport, self.seqno))
+                    # sleep for a second
+                    time.sleep(1)
+            
             print("sending latency data")
             connection = self.send_latency_data(self_latency_data)
             print("getting chain data")
