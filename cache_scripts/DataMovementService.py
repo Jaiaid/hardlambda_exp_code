@@ -57,6 +57,7 @@ class DataMoverService():
     
     def send_latency_data(self, connection_socket, latency_data_list):
         # first send self id/seqno
+        print("sending seqno {0} to cache 0 service".format(self.seqno))
         connection_socket.send(int.to_bytes(self.seqno, "little"))
         # then send  number of peer of whom sending the latency data
         connection_socket.send(int.to_bytes(len(latency_data_list), "little"))
