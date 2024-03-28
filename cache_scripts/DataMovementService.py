@@ -82,13 +82,17 @@ class DataMoverService():
     
     def send_chain_data(self, chain, peer_connection_list):
         # find the collectors ip and service port
-        for i in range(1, len(peer_connection_list)):
+        for i in range(0, len(peer_connection_list)):
             peer_socket = peer_connection_list[i]
             # find position in chain
             for pos, peerid in enumerate(chain):
                 if peerid == i:
-                    cacheupdate_source_nodeid = chain[(pos+1)%len(chain)] 
-                    peer_socket.send(int.to_bytes(cacheupdate_source_nodeid, "little"))
+                    cacheupdate_source_nodeid = chain[(pos+1)%len(chain)]
+                    if i != 0:
+                        peer_socket = peer_connection_list[i]
+                        peer_socket.send(int.to_bytes(cacheupdate_source_nodeid, "little"))
+                    else:
+                        self.getcache_idx = cacheupdate_source_nodeid
 
     def get_chain_data(self, connection_socket) -> int:
         return int.from_bytes(connection_socket.recv(4), "little")
@@ -119,9 +123,11 @@ class DataMoverService():
                     time.sleep(1)
             
             print("sending latency data")
-            connection = self.send_latency_data(self_latency_data)
+            connection = self.send_latency_data(connection_socket=connection_socket, latency_data_list=self_latency_data)
             print("getting chain data")
             self.getcache_idx = self.get_chain_data(connection)
+            print("sync with cache 0 is done, closing connection...")
+            connection_socket.close()
         else:
             peer_connection_list = [None] * len(self.cache_node_dict)
             # there will be n-1 connection if there are total n nodes
@@ -135,7 +141,7 @@ class DataMoverService():
                 peer_connection_list[peerseqno] = peer_socket
             # collecting latency data
             print("collecting latency data")
-            latency_matrix = self.collect_latency_data(peer_connection_list, self_latency_data)
+            latency_matrix = self.create_latency_matrix(peer_connection_list, self_latency_data)
             # generate mindist chain
             print("generating sequence")
             chain = mindist_chain.generate_mindistchain(distmatrix=latency_matrix)
@@ -143,6 +149,8 @@ class DataMoverService():
             # now send the chain information to all
             print("sending chain information to all")
             self.send_chain_data(chain=chain, peer_connection_list=peer_connection_list)
+
+        print("global sync step is done")
 
     def parse_cachedesc(self, cachefilepath: str):
         with open(cachefilepath) as fin:
