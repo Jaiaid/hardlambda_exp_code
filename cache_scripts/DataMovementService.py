@@ -186,10 +186,10 @@ class DataMoverService():
         print("creating client to each cache")
         self.connect_to_cache()
         print("collecting latency data to each cache")
-        lateny_data = self.collect_latency_data()
+        latency_data = self.collect_latency_data()
 
         print("proceeding to sync globally about the latency")
-        self.global_sequence_sync()
+        self.global_sequence_sync(self_latency_data=latency_data)
 
         print("starting interface to client")
         # block until connection established
