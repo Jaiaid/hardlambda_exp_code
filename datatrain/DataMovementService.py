@@ -81,7 +81,7 @@ class DataMoverService():
         for latency in latency_data_list:
             connection_socket.send(struct.pack('d', latency))
 
-    def create_latency_matrix(self, peer_connection_list, latency_data_list) -> list[list[float]]:
+    def create_latency_matrix(self, peer_connection_list, latency_data_list):
         latency_matrix = [latency_data_list]
         
         # now collect data from each peer socket and fill up latency matrix
