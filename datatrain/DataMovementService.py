@@ -7,7 +7,7 @@ import redis
 import time
 import argparse
 
-import mindist_chain
+import .mindist_chain
 
 
 class DataMoverService():
