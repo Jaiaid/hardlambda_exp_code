@@ -2,7 +2,7 @@
 
 #!/bin/bash
 ROOT_DIR=..
-EPOCH=2
+EPOCH=1
 CACHEJOB_SCRIPT=$1
 TRAINJOB_SCRIPT=$2
 
@@ -21,9 +21,9 @@ for IMGDIM in 32 64 128 256 512 1024;do
     sleep 60
     echo "cache creation done"
     popd
-    for BS in 4 8 16 32 64;do
-        for NETARCH in mobilenet_v2 resnet18 resnet50 resnet101;do
-            for SAMPLER in graddistbg shade default dali;do
+    for BS in 2 4 8 16 32 64;do
+        for NETARCH in mobilenet_v2 resnet18 resnet50 resnet101 efficientnet_b1;do
+            for SAMPLER in default graddistbg shade dali;do
                 sed "s/NETARCH/"$NETARCH"/" $TRAINJOB_SCRIPT > jobtmp.txt
                 sed -i "s/SAMPLER/"$SAMPLER"/" jobtmp.txt
                 sed -i "s/BS/"$BS"/" jobtmp.txt
