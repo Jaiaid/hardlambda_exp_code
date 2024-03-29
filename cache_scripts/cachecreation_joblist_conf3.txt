@@ -1,0 +1,4 @@
+wukong0 22 ~/graddistbg/testenv/hardlambda/code/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 0 IMGDIM 26379 0 cache_conf3.yaml
+wukong1 22 ~/graddistbg/testenv/hardlambda/code/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 200 IMGDIM 26379 1 cache_conf3.yaml
+wukong2 22 ~/graddistbg/testenv/hardlambda/code/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 300 IMGDIM 26379 2 cache_conf3.yaml
+wukong3 22 ~/graddistbg/testenv/hardlambda/code/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 400 IMGDIM 26379 3 cache_conf3.yaml
