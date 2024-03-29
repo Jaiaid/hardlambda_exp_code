@@ -1,0 +1,4 @@
+wukong0 22 ~/graddistbg/testenv/hardlambda/code/hardlambda_exp_code/exp_background process.sh 0,1 0,1 NETARCH SAMPLER BS EPOCH 4 tcp://<wukong0 ip>:44144 <iface name> 0 cache_conf3.yaml IMGDIM
+wukong1 22 ~/graddistbg/testenv//hardlambda/code/hardlambda_exp_code/exp_background process.sh 0,1 0,1 NETARCH SAMPLER BS EPOCH 4 tcp://<wukong0 ip>:44144 <iface name> 1 cache_conf3.yaml IMGDIM
+wukong2 22 ~/graddistbg/testenv/hardlambda/code/hardlambda_exp_code/exp_background process.sh 0,1 0,1 NETARCH SAMPLER BS EPOCH 4 tcp://<wukong0 ip>:44144 <iface name> 2 cache_conf3.yaml IMGDIM
+wukong2 22 ~/graddistbg/testenv/hardlambda/code/hardlambda_exp_code/exp_background process.sh 0,1 0,1 NETARCH SAMPLER BS EPOCH 4 tcp://<wukong0 ip>:44144 <iface name> 3 cache_conf3.yaml IMGDIM
