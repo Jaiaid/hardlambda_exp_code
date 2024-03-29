@@ -7,7 +7,7 @@ import redis
 import time
 import argparse
 
-import .mindist_chain
+from .mindist_chain import generate_mindistchain
 
 
 class DataMoverService():
@@ -175,7 +175,7 @@ class DataMoverService():
             
             # generate mindist chain
             print("generating sequence")
-            chain = mindist_chain.generate_mindistchain(distmatrix=latency_matrix)
+            chain = generate_mindistchain(distmatrix=latency_matrix)
             print("proposed method's sequence of cache is following")
             print(chain)
 
