@@ -268,21 +268,25 @@ class DataMoverService():
 
     def cmdloop(self):
         while True:
-            # recv from trainer
-            # cmd size will be at most DataMoverService.MAXCMD_SIZE
-            cmd = self.trainer_socket.recv(DataMoverService.MAXCMD_SIZE).decode("utf-8")
-            if cmd[:2] == "bs":
-                batch_size = int.from_bytes(self.trainer_socket.recv(4), "little")
-                self.batch_size = batch_size
-                # update done send message
-                self.trainer_socket.send(b"done")
-            elif cmd[:5] == "batch":
-                batch_no = int.from_bytes(self.trainer_socket.recv(4), "little")
-                self.updatecache(batch_no=batch_no)
-                # update done send message
-                self.trainer_socket.send(b"done")
-            elif cmd[:4] == "exit":
-                self.server_socket.close()
+            try:
+                # recv from trainer
+                # cmd size will be at most DataMoverService.MAXCMD_SIZE
+                cmd = self.trainer_socket.recv(DataMoverService.MAXCMD_SIZE).decode("utf-8")
+                if cmd[:2] == "bs":
+                    batch_size = int.from_bytes(self.trainer_socket.recv(4), "little")
+                    self.batch_size = batch_size
+                    # update done send message
+                    self.trainer_socket.send(b"done")
+                elif cmd[:5] == "batch":
+                    batch_no = int.from_bytes(self.trainer_socket.recv(4), "little")
+                    self.updatecache(batch_no=batch_no)
+                    # update done send message
+                    self.trainer_socket.send(b"done")
+                elif cmd[:4] == "exit":
+                    self.server_socket.close()
+                    break
+            except Exception as e:
+                print(e)
                 break
 
 class DataMoverServiceInterfaceClient():
