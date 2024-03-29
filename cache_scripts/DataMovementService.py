@@ -9,6 +9,7 @@ import argparse
 
 import mindist_chain
 
+global_exit = False
 
 class DataMoverService():
     MAXCMD_SIZE = 16
@@ -17,15 +18,17 @@ class DataMoverService():
     
     @staticmethod
     def healthchecker(cacheconnection):
+        global global_exit
         # make a query to the cache
         # if fail exit everything
         # at least there will be following data
-        while True:
+        while not global_exit:
             try:
                 cacheconnection.get("label0")
                 # check each 2s
                 time.sleep(2)
             except redis.exceptions.ConnectionError:
+                global_exit = True
                 _thread.interrupt_main()
                 break
 
@@ -236,15 +239,20 @@ class DataMoverService():
         health_check_thread = threading.Thread(target=DataMoverService.healthchecker, args=(self.cache_node_dict[0][5],))
         health_check_thread.start()
         try:
-            print("starting interface to client")
-            # block until connection established
-            self.server_socket.listen(1)
-            # got connectino from trainer process
-            self.trainer_socket, self.trainer_address = self.server_socket.accept()
+            global global_exit
+            while not global_exit:
+                print("starting interface to client")
+                # block until connection established
+                self.server_socket.listen(1)
+                # got connectino from trainer process
+                self.trainer_socket, self.trainer_address = self.server_socket.accept()
+                print("connected to a client")
+            global_exit = False
         except Exception as e:
             print("Exception recieved ", e)
             print("exiting...")
             self.server_socket.close()
+            global_exit = False
 
     def updatecache(self, batch_no: int) -> None:
         for i in range(batch_no * self.batch_size, (batch_no + 1) * self.batch_size):
