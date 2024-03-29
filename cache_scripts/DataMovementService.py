@@ -249,13 +249,13 @@ class DataMoverService():
     def updatecache(self, batch_no: int) -> None:
         for i in range(batch_no * self.batch_size, (batch_no + 1) * self.batch_size):
             # get
-            databytes = self.cache_client_list[self.getcache_idx].get("data"+str(i))
-            labelbytes = self.cache_client_list[self.getcache_idx].get("label"+str(i))
+            databytes = self.cache_node_dict[self.getcache_idx][5].get("data"+str(i))
+            labelbytes = self.cache_node_dict[self.getcache_idx][5].get("label"+str(i))
             # set
             # TODO:
             # check if we are getting byte sequence correctly
-            self.cache_client_list[self.seqno].set("data"+str(i), databytes)
-            self.cache_client_list[self.seqno].set("label"+str(i), labelbytes)
+            self.cache_node_dict[self.seqno][5].set("data"+str(i), databytes)
+            self.cache_node_dict[self.seqno][5].set("label"+str(i), labelbytes)
 
     def cmdloop(self):
         while True:
