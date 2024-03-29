@@ -123,7 +123,7 @@ class DataMoverService():
         if self.seqno != 0:
             # 20s wait to give seqno 0 some chance to setup stuffs
             print("waiting before sending data")
-            time.sleep(10)
+            time.sleep(2)
             print("connecting with cache seq 0 service")
             # find the collectors ip and service port
             ip = self.cache_node_dict[0][0]
