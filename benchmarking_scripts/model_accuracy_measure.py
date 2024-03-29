@@ -285,15 +285,6 @@ def main_worker(gpu, ngpus_per_node, args):
         data_sampler = GradualDistAwareDistributedSamplerBG(
             dataset=dataset, num_caches=2, batch_size=args.batch_size)
         data_sampler.set_rank(rank=args.rank)
-        # starting the background data mover service
-        data_mover_service = subprocess.Popen(
-            """python3 {2}/../datatrain/DataMovementService.py --seqno {0}
-            -cn 10.21.12.241 26379 10.21.12.241 26380 -pn 10.21.12.241 -p {1}""".format(
-                args.rank if args.rank < 3 else 2, args.port_mover, os.path.dirname(os.path.abspath(__file__))).split()
-        )
-        # check if running
-        if data_mover_service.poll() is None:
-            print("data mover service is running")
     else:
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=args.world_size)
@@ -393,7 +384,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
     if args.sampler == "graddistbg":
         data_mover.close()
-        data_mover_service.kill()
     if args.sampler == "shade":
         # clean the cached data for next run
         redis_host = 'localhost'  # Change this to your Redis server's host
