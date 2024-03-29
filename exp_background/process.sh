@@ -16,11 +16,15 @@ IMGSIZE=${12}
 # to activate virtual environment
 source ../../venv/bin/activate
 
+set -x
+
 if [[ $RANK -eq 0 ]]
 then
     mkdir -p imagedim${IMGSIZE} 
-    time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/model_accuracy_measure.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -cachedesc $CACHEDESC > /dev/null
-    mv benchmark_iteration_step.csv imagedim${IMGSIZE}/benchmark_iteration_step_${SAMPLER}_${NETARCH}_${BS}.csv 
+    time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/dataload_benchmarking.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -cachedesc $CACHEDESC 
+    mv benchmark_iteration_step.tsv imagedim${IMGSIZE}/benchmark_iteration_step_${SAMPLER}_${NETARCH}_${BS}.tsv 
 else
-    time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/model_accuracy_measure.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -cachedesc $CACHEDESC  > /dev/null
+    time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/dataload_benchmarking.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -cachedesc $CACHEDESC 
 fi
+
+set +x
