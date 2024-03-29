@@ -199,6 +199,9 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         # added following
         # https://github.com/pytorch/torchrec/issues/328
         torch.cuda.set_device(args.rank%ngpus_per_node)
+        # let rank 0 to catch up in mulit node setup
+        if args.rank != 0:
+            time.sleep(10)
         dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
     # create model
