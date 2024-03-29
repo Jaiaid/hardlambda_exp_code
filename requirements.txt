@@ -20,3 +20,4 @@ torch
 torchvision
 triton
 typing_extensions
+pyyaml
