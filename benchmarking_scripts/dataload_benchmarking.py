@@ -270,7 +270,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         dataset = ShadeDataset(cachedesc_filepath=args.cache_descriptor)
 
     with open(args.cache_descriptor) as fin:
-        datadict = yaml.safe_load(fin)
+        cachedatadict = yaml.safe_load(fin)
 
     cachedatadict = cachedatadict["cachedict"]
     cache_nodes_dict = {}
