@@ -89,29 +89,6 @@ if __name__=='__main__':
     parser.add_argument("-dim", "--image-dimension", type=int, help="dimension of image", required=False, default=224)
     args = parser.parse_args()
 
-    try:
-        # Start the Redis server as a subprocess
-        # redis_server_process = subprocess.Popen([redis_server_cmd, args.conf_file]
-        # , stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
 
-        # Wait for Redis to start (adjust the sleep duration as needed)
-        time.sleep(2)
-        data_pool = SharedDataRedis(port=args.port, dataset=args.dataset, dataroot=args.dataset_root, cachesize=args.cache_size, dataoffset=args.store_offset, imgsize=args.image_dimension)
-        # sleep idefinitely until keyboard exception
-        # print("Memory rss footprint of redis process ", (psutil.Process(redis_server_process.pid).memory_info().rss)>>20, "MiB")
-        # print("Memory shared footprint of redis starter process ", (psutil.Process().memory_info().shared)>>20, "MiB")
-
-        print("Press Ctl+C to exit")
-        while True:
-            # out, err = redis_server_process.communicate()
-            # print(out)
-            # exit_code = redis_server_process.wait()
-            # print("redis server exited with exit code {0}".format(exit_code))
-            break
-    except Exception as e:
-        # kill the process
-        # redis_server_process.kill()
-        print(e)
-        print("exiting")
-
-    
+    time.sleep(2)
+    data_pool = SharedDataRedis(port=args.port, dataset=args.dataset, dataroot=args.dataset_root, cachesize=args.cache_size, dataoffset=args.store_offset, imgsize=args.image_dimension)
