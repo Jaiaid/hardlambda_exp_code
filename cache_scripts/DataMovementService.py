@@ -248,12 +248,12 @@ class DataMoverService():
                 self.trainer_socket, self.trainer_address = self.server_socket.accept()
                 print("connected to a client, starting cmdloop")
                 self.cmdloop()
-            global_exit = False
+            global_exit = True
         except Exception as e:
             print("Exception recieved ", e)
             print("exiting...")
             self.server_socket.close()
-            global_exit = False
+            global_exit = True
 
     def updatecache(self, batch_no: int) -> None:
         for i in range(batch_no * self.batch_size, (batch_no + 1) * self.batch_size):
@@ -283,7 +283,6 @@ class DataMoverService():
                     # update done send message
                     self.trainer_socket.send(b"done")
                 elif cmd[:4] == "exit":
-                    self.server_socket.close()
                     break
             except Exception as e:
                 print(e)
