@@ -4,6 +4,7 @@ import argparse
 import os
 import random
 import math
+import yaml
 import time
 import subprocess
 import psutil
@@ -96,9 +97,6 @@ parser.add_argument("-sampler", "--sampler", default="default", required=False, 
                         help="what sampler will be used")
 # for proposed method specialized dataset initiation
 parser.add_argument("-cachedesc", "--cache-descriptor", type=str, help="yaml file describing caches", default="cache.yaml", required=False)
-# for data movement service
-parser.add_argument("-ipm", "--ip_mover", type=str, help="data move service ip", default="lo", required=False)
-parser.add_argument("-portm", "--port_mover", type=str, help="data move service port", default="lo", required=False)
 # parameter synchornization modification related
 parser.add_argument("-esync", "--epoch-sync", action='store_true', help="use to sync gradient at epoch boundary")
 
@@ -271,13 +269,27 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     else:
         dataset = ShadeDataset(cachedesc_filepath=args.cache_descriptor)
 
+    with open(args.cache_descriptor) as fin:
+        datadict = yaml.safe_load(fin)
+
+    cachedatadict = cachedatadict["cachedict"]
+    cache_nodes_dict = {}
+    rank_id_dict = {}
+    for i, key in enumerate(cachedatadict):
+        rank = key
+        rank_id_dict[i] = rank
+
+        ip = cachedatadict[key][0].split(":")[0]
+        serviceport = cachedatadict[key][1]["serviceport"]
+        cache_nodes_dict[i] = [ip, serviceport]
+
     # create the sampler
     if args.sampler == "shade":
         data_sampler = ShadeSampler(
             dataset=dataset, num_replicas=args.world_size, batch_size=args.batch_size, host_ip="0.0.0.0")
     elif args.sampler == "graddistbg":
         data_sampler = GradualDistAwareDistributedSamplerBG(
-            dataset=dataset, num_caches=3, batch_size=args.batch_size)
+            dataset=dataset, num_caches=len(cache_nodes_dict), batch_size=args.batch_size)
         data_sampler.set_rank(rank=args.rank)
     else:
         data_sampler = DefaultDistributedSampler(
@@ -292,7 +304,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         connection_refused_count = 0
         while connection_refused_count < 10: 
             try:
-                data_mover = DataMoverServiceInterfaceClient(args.ip_mover, args.port_mover)
+                data_mover = DataMoverServiceInterfaceClient(ip=cache_nodes_dict[args.rank][0], port=cache_nodes_dict[args.rank][1])
                 # connection established send the batch size
                 data_mover.set_batchsize(batch_size=args.batch_size)
                 break
