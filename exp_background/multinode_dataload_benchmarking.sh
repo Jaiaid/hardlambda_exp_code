@@ -4,7 +4,7 @@
 ROOT_DIR=..
 EPOCH=2
 
-for IMGDIM 32 64 128 256 512 1024;do
+for IMGDIM in 32 64 128 256 512 1024;do
     pushd $ROOT_DIR/cache_scripts
     bash $ROOT_DIR/job_distributor/master.sh cachecreation_joblist_conf2.txt
     # give some time to create the data cache
