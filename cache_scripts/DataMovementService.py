@@ -246,7 +246,8 @@ class DataMoverService():
                 self.server_socket.listen(1)
                 # got connectino from trainer process
                 self.trainer_socket, self.trainer_address = self.server_socket.accept()
-                print("connected to a client")
+                print("connected to a client, starting cmdloop")
+                self.cmdloop()
             global_exit = False
         except Exception as e:
             print("Exception recieved ", e)
@@ -355,8 +356,3 @@ if __name__ == "__main__":
     service.start(
         cachedesc_filepath=args.cache_descriptor, seqno=args.seqno
     )
-    service.cmdloop()
-
-
-
-
