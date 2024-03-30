@@ -23,13 +23,14 @@ def generate_mindistchain(distmatrix):
         min_inc = distmatrix[chain[0]][rem_node_list[0]] + distmatrix[chain[-1]][rem_node_list[0]]
         added_node_idx = 0
         final_inserted_pos = 0
-        for node_idx in rem_node_list:
+        for node_idx, node in enumerate(rem_node_list):
             # increment calc
             for pos in range(len(chain)):
-                increment = distmatrix[chain[pos]][node_idx] + distmatrix[chain[pos-1]][node_idx]
+                increment = distmatrix[chain[pos]][node] + distmatrix[chain[pos-1]][node]
                 if min_inc > increment:
                     final_inserted_pos = pos
                     added_node_idx = node_idx
+                    min_inc = increment
         
         chain.insert(final_inserted_pos, rem_node_list[added_node_idx])
         print(chain)
