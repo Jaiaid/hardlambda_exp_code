@@ -13,6 +13,12 @@ RANK=${10}
 CACHEDESC=${11}
 IMGSIZE=${12}
 
+# kill previous job
+for pid in `lsof -i -P -n | grep ":44144" | awk -F' ' '{ print $2 }'`;do
+    kill $pid
+done
+sleep 5
+
 # to activate virtual environment
 source ../../venv/bin/activate
 
