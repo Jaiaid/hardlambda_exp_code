@@ -27,10 +27,11 @@ set -x
 if [[ $RANK -eq 0 ]]
 then
     mkdir -p imagedim${IMGSIZE} 
-    time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/dataload_benchmarking.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -cachedesc $CACHEDESC 
-    mv benchmark_iteration_step.tsv imagedim${IMGSIZE}/benchmark_iteration_step_${SAMPLER}_${NETARCH}_${BS}.tsv 
+    time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/dataload_benchmarking.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -cachedesc $CACHEDESC 2>&1
+    touch imagedim${IMGSIZE}/benchmark_iteration_step_${SAMPLER}_${NETARCH}_${BS}.tsv 
+    tail -1 benchmark_iteration_step.tsv > imagedim${IMGSIZE}/benchmark_iteration_step_${SAMPLER}_${NETARCH}_${BS}.tsv 
 else
-    time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/dataload_benchmarking.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -cachedesc $CACHEDESC 
+    time numactl --cpunodebind=$CPUNODE --membind=$MEMNODE python3 ../benchmarking_scripts/dataload_benchmarking.py -a $NETARCH -sampler $SAMPLER -b $BS --epochs $EPOCH --world-size $WORLD --dist-url $DISTURL -if $IFACE --rank $RANK -cachedesc $CACHEDESC > /dev/null
 fi
 
 set +x
