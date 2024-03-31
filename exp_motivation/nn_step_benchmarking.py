@@ -55,19 +55,6 @@ def training_all_param_update(nn_model: torch.nn.Module, dataloader: torch.utils
 
     # move to GPU
     nn_model.cuda()
-    # we are doing iteration steps benchmarking so no need to train more than one epoch
-
-    # clear collector status
-    collector.clear()
-    collector.stop(tag="test")
-    # move to CPU
-    nn_model.cpu()
-    # empty the cuda cache done by torch
-    torch.cuda.empty_cache()
-    # start collector
-    collector.start(tag="test")
-    # move to GPU
-    nn_model.cuda()
     # init loss and optimizer
     loss_func = torch.nn.MSELoss()
     optimizer = torch.optim.SGD(nn_model.parameters(), lr=LEARNING_RATE)
