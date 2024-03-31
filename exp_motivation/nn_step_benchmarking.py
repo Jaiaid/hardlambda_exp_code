@@ -10,7 +10,7 @@ from nvitop import Device, ResourceMetricCollector
 
 
 NETWORKS =  ["resnet50"]
-BATCH_SIZES = [256, 128, 64, 32, 16, 8, 4, 2, 1]
+BATCH_SIZES = [1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
 LEARNING_RATE = 0.001
 NUMBER_OF_CLASSES = 1000
 IMAGECOUNT_PER_RUN = 2048
