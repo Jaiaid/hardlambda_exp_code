@@ -18,7 +18,7 @@ BATCH_SIZES = [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
 IMGDIMS = [1024, 512, 256, 128, 64, 32]
 LEARNING_RATE = 0.001
 NUMBER_OF_CLASSES = 1000
-IMAGECOUNT_PER_RUN = 512
+IMAGECOUNT_PER_RUN = 4096
 ITERATION_COUNT_PER_RUN = 10000000
 
 gpu_utilization_dict = {}
@@ -57,50 +57,6 @@ def training_all_param_update(nn_model: torch.nn.Module, dataloader: torch.utils
     nn_model.cuda()
     # we are doing iteration steps benchmarking so no need to train more than one epoch
 
-    # this is for only inference forward
-    nn_model.eval()
-    evalfw_time_count = 0
-    eval_iter_count = 0 
-    infer_data_load_time = 0
-    data_load_start_time = time.time()
-    for input_data, label in tqdm(dataloader, leave=False):
-        try:
-            one_hot = torch.nn.functional.one_hot(label, num_classes=1000).float().cuda()
-            input_data = input_data.cuda()
-            infer_data_load_time += time.time() - data_load_start_time
-            t = time.time()
-            fw = nn_model(input_data)
-            evalfw_time_count += time.time() - t
-            t = time.time()
-            # collect metrics
-            # collecting after measuring the time to not affect time measurement due to metric collection overhead
-            # As we are collecting mean, we should still see the effect from last sampling 
-            metrics = collector.collect()
-            gpu_utilization_list.append(
-                [
-                    metrics["test/timestamp"],
-                    metrics["test/host/cpu_percent (%)/mean"],
-                    metrics["test/cuda:0 (gpu:0)/gpu_utilization (%)/mean"],
-                    metrics["test/cuda:0 (gpu:0)/memory_used (MiB)/mean"]
-                ]
-            )
-            data_collection_count += 1
-        except torch.cuda.OutOfMemoryError as e:
-            print(
-                "batch size {0} for imagenet 3x224x224 is not suitable for inference with GPU memory {1}GB".format(
-                    batch_size, torch.cuda.mem_get_info()[1]>>30
-                )
-            )
-            evalfw_time_count = math.nan
-            eval_iter_count = 1
-            break
-        eval_iter_count += 1
-        if eval_iter_count > IMAGECOUNT_PER_RUN/batch_size or eval_iter_count > ITERATION_COUNT_PER_RUN:
-            break
-
-        data_load_start_time = time.time()
-
-    # to reinit every thing before training benchmarking
     # clear collector status
     collector.clear()
     collector.stop(tag="test")
@@ -190,7 +146,7 @@ def training_all_param_update(nn_model: torch.nn.Module, dataloader: torch.utils
             break
 
         iter_count += 1
-        if iter_count > IMAGECOUNT_PER_RUN/batch_size or eval_iter_count > ITERATION_COUNT_PER_RUN:
+        if iter_count > IMAGECOUNT_PER_RUN/batch_size or iter_count > ITERATION_COUNT_PER_RUN:
             break
         data_load_start_time = time.time()
         # per epoch loss record
@@ -206,7 +162,7 @@ def training_all_param_update(nn_model: torch.nn.Module, dataloader: torch.utils
     del nn_model
     
     # print("\n\n", data_collection_count, "\n\n")
-    return evalfw_time_count/eval_iter_count, evalfw_time_count/(eval_iter_count*batch_size), fw_time_count/iter_count, fw_time_count/(iter_count*batch_size), bw_time_count/iter_count, bw_time_count/(iter_count*batch_size), infer_data_load_time/(iter_count*batch_size), train_data_load_time/(iter_count*batch_size)
+    return (fw_time_count + bw_time_count)/iter_count, (fw_time_count + bw_time_count)/(iter_count*batch_size), train_data_load_time/iter_count, train_data_load_time/(iter_count*batch_size)
 
 
 if __name__ == "__main__":
@@ -231,11 +187,11 @@ if __name__ == "__main__":
                 nn_model = torchvision.models.__dict__[network]()
                 # nn_model.fc = torch.nn.Linear(512, NUMBER_OF_CLASSES)
                 
-                evalfw, evalfw_per_samp, fw, fw_per_samp, bw, bw_per_samp, inferdataload_per_sample, traindata_load_per_sample  = training_all_param_update(
+                ptime, ptime_per_sample, traindata_load_time, traindata_load_per_sample  = training_all_param_update(
                     nn_model=copy.deepcopy(nn_model), dataloader=dataloader, batch_size=batch_size
                 )
 
-                benchmark_dict[batch_size] = [evalfw, evalfw_per_samp, fw, fw_per_samp, bw, bw_per_samp, inferdataload_per_sample, traindata_load_per_sample]
+                benchmark_dict[batch_size] = [ptime, ptime_per_sample, traindata_load_time, traindata_load_per_sample]
                 gpu_utilization_dict[batch_size] = copy.deepcopy(gpu_utilization_list)
 
             if first_time_write:
