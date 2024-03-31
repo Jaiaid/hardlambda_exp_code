@@ -4,16 +4,21 @@ import torch
 import torchvision
 import time
 import math
+# to use package in a script and the pacakege in different folder
+import sys
+sys.path.append("..")
 
 from tqdm import tqdm
 from nvitop import Device, ResourceMetricCollector
 
+from datatrain.dataset import SharedDistRedisPool, DatasetPipeline
 
 NETWORKS =  ["resnet50"]
 BATCH_SIZES = [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
+IMGDIMS = [1024, 512, 256, 128, 64, 32]
 LEARNING_RATE = 0.001
 NUMBER_OF_CLASSES = 1000
-IMAGECOUNT_PER_RUN = 2048
+IMAGECOUNT_PER_RUN = 512
 ITERATION_COUNT_PER_RUN = 10000000
 
 gpu_utilization_dict = {}
@@ -208,37 +213,49 @@ if __name__ == "__main__":
     for network in NETWORKS:
         benchmark_dict = {}
 
-        for batch_size in BATCH_SIZES:
-            random.seed(3400)
-            data_dict_per_iteration = {}
-            data_dict_per_epoch = {}
-            # load dataset and data loader for cifar10
-            transform = torchvision.transforms.Compose([
-                torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
-                torchvision.transforms.Resize([224,224]),
-                torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to mean 0 and standard deviation 1
-            ])
-            dataset = torchvision.datasets.CIFAR10(root=".", train=True, transform=transform, download=True)
-            dataloader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size)
-            # model
-            nn_model = torchvision.models.__dict__[network]()
-            # nn_model.fc = torch.nn.Linear(512, NUMBER_OF_CLASSES)
-            
-            evalfw, evalfw_per_samp, fw, fw_per_samp, bw, bw_per_samp, inferdataload_per_sample, traindata_load_per_sample  = training_all_param_update(
-                nn_model=copy.deepcopy(nn_model), dataloader=dataloader, batch_size=batch_size
-            )
-
-            benchmark_dict[batch_size] = [evalfw, evalfw_per_samp, fw, fw_per_samp, bw, bw_per_samp, inferdataload_per_sample, traindata_load_per_sample]
-            gpu_utilization_dict[batch_size] = copy.deepcopy(gpu_utilization_list)
-
-        with open("benchmark_{0}_nn_step.csv".format(network), "w") as fout:
-            fout.write("Batch Size\tInference\tInference Per Sample\tForward\tForward Per Sample\tBackward\tBackward Per Sample\tInfer Data Load\tTrain data load\n")
+        first_time_write = True
+        for img_siz in IMGDIMS:
             for batch_size in BATCH_SIZES:
-                data_list = benchmark_dict[batch_size]
-                fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\n".format(
-                        batch_size, data_list[0], data_list[1], data_list[2], data_list[3], data_list[4], data_list[5], data_list[6], data_list[7]
-                    )
+                random.seed(3400)
+                data_dict_per_iteration = {}
+                data_dict_per_epoch = {}
+                # load dataset and data loader for cifar10
+                transform = torchvision.transforms.Compose([
+                    torchvision.transforms.ToTensor(),               # Convert images to PyTorch tensors
+                    torchvision.transforms.Resize([img_siz,img_siz]),
+                    torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))  # Normalize to mean 0 and standard deviation 1
+                ])
+                dataset = torchvision.datasets.CIFAR10(root=".", train=True, transform=transform, download=True)
+                dataloader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size)
+                # model
+                nn_model = torchvision.models.__dict__[network]()
+                # nn_model.fc = torch.nn.Linear(512, NUMBER_OF_CLASSES)
+                
+                evalfw, evalfw_per_samp, fw, fw_per_samp, bw, bw_per_samp, inferdataload_per_sample, traindata_load_per_sample  = training_all_param_update(
+                    nn_model=copy.deepcopy(nn_model), dataloader=dataloader, batch_size=batch_size
                 )
+
+                benchmark_dict[batch_size] = [evalfw, evalfw_per_samp, fw, fw_per_samp, bw, bw_per_samp, inferdataload_per_sample, traindata_load_per_sample]
+                gpu_utilization_dict[batch_size] = copy.deepcopy(gpu_utilization_list)
+
+            if first_time_write:
+                with open("benchmark_{0}_nn_step.csv".format(network), "w") as fout:
+                    fout.write("IMGDIM\tBatch Size\tprocess time\tTrain data load\n")
+                    for batch_size in BATCH_SIZES:
+                        data_list = benchmark_dict[batch_size]
+                        fout.write("{0}\t{1}\t{2}\t{3}\n".format(
+                                img_siz, batch_size, data_list[0], data_list[1]
+                            )
+                        )
+                first_time_write = False
+            else:
+                with open("benchmark_{0}_nn_step.csv".format(network), "a") as fout:
+                    for batch_size in BATCH_SIZES:
+                        data_list = benchmark_dict[batch_size]
+                        fout.write("{0}\t{1}\t{2}\t{3}\n".format(
+                                img_siz, batch_size, data_list[0], data_list[1]
+                            )
+                        )
 
         # with open("benchmark_{0}_gpu_utilization.csv".format(network), "w") as fout:
         #     for batch_size in BATCH_SIZES:
