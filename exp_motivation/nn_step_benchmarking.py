@@ -14,12 +14,10 @@ from nvitop import Device, ResourceMetricCollector
 from datatrain.dataset import SharedDistRedisPool, DatasetPipeline
 
 NETWORKS =  ["resnet50"]
-BATCH_SIZES = [2048, 1024, 512, 256, 128, 64, 32, 16, 8, 4, 2, 1]
+BATCH_SIZES = [[2048, 20], [1024, 20], [512,20], [256,20], [128,20], [64,20], [32,20], [16,20], [8,20], [4,20], [2,20], [1,20]]
 IMGDIMS = [1024, 512, 256, 128, 64, 32]
 LEARNING_RATE = 0.001
 NUMBER_OF_CLASSES = 1000
-IMAGECOUNT_PER_RUN = 4096
-ITERATION_COUNT_PER_RUN = 10000000
 
 gpu_utilization_dict = {}
 gpu_utilization_list = []
@@ -34,7 +32,7 @@ model_names = sorted(name for name in torchvision.models.__dict__
     and callable(torchvision.models.__dict__[name]))
 
 # will do full update through standard pytorch optim module
-def training_all_param_update(nn_model: torch.nn.Module, dataloader: torch.utils.data.DataLoader, batch_size: int):
+def training_all_param_update(nn_model: torch.nn.Module, dataloader: torch.utils.data.DataLoader, batch_size: int, maxiter: int):
     global gpu_utilization_list
     # emptying the list before starting
     gpu_utilization_list = []
@@ -131,7 +129,7 @@ def training_all_param_update(nn_model: torch.nn.Module, dataloader: torch.utils
             break
 
         iter_count += 1
-        if iter_count > IMAGECOUNT_PER_RUN/batch_size or iter_count > ITERATION_COUNT_PER_RUN:
+        if iter_count == maxiter:
             break
         data_load_start_time = time.time()
         # per epoch loss record
@@ -156,7 +154,9 @@ if __name__ == "__main__":
 
         first_time_write = True
         for img_siz in IMGDIMS:
-            for batch_size in BATCH_SIZES:
+            for batch_data in BATCH_SIZES:
+                batch_size = batch_data[0]
+                iteration = batch_data[1]
                 random.seed(3400)
                 data_dict_per_iteration = {}
                 data_dict_per_epoch = {}
@@ -173,7 +173,7 @@ if __name__ == "__main__":
                 # nn_model.fc = torch.nn.Linear(512, NUMBER_OF_CLASSES)
                 
                 ptime, ptime_per_sample, traindata_load_time, traindata_load_per_sample  = training_all_param_update(
-                    nn_model=copy.deepcopy(nn_model), dataloader=dataloader, batch_size=batch_size
+                    nn_model=copy.deepcopy(nn_model), dataloader=dataloader, batch_size=batch_size, maxiter=iteration
                 )
 
                 benchmark_dict[batch_size] = [ptime, ptime_per_sample, traindata_load_time, traindata_load_per_sample]
