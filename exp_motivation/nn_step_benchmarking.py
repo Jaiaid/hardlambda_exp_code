@@ -44,8 +44,6 @@ def training_all_param_update(nn_model: torch.nn.Module, dataloader: torch.utils
     data_collection_count = 0
 
     # start the resource collector with tag
-    # We will collect one sample per inference iteration
-    # two sample per 
     collector.start(tag="test")
     # NOT DOING DAEMONIZING
     # daemonize it, this returns a threading.thread object
