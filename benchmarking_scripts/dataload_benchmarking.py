@@ -10,6 +10,7 @@ import subprocess
 import psutil
 import warnings
 import redis
+import datetime
 from enum import Enum
 
 import torch
@@ -200,8 +201,13 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         # let rank 0 to catch up in mulit node setup
         if args.rank != 0:
             time.sleep(10)
-        dist.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
+        try:
+            # following https://github.com/lkeab/BCNet/issues/53
+            dist.init_process_group(backend=args.dist_backend, timeout=datetime.timedelta(seconds=100000), init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
+        except Exception as e:
+            print(e, args.rank, args.world_size, ngpus_per_node)
+            sys.exit(0)
     # create model
     print("=> creating model '{}'".format(arch))
     model = models.__dict__[arch]()
@@ -368,6 +374,7 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, proces
 
     end = time.time()
     for i, (images, target) in enumerate(train_loader):
+        print(i)
         # measure data loading time
         data_time.update(time.time() - end)
         if args.sampler == "graddistbg":
