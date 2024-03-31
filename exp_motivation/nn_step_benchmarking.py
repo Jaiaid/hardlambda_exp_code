@@ -185,7 +185,7 @@ if __name__ == "__main__":
                     for batch_data in BATCH_SIZES:
                         batch_size = batch_data[0]
                         data_list = benchmark_dict[batch_size]
-                        fout.write("{0}\t{1}\t{2}\t{3}\n".format(
+                        fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(
                                 img_siz, batch_size, data_list[0], data_list[1], data_list[2], data_list[3]
                             )
                         )
@@ -195,7 +195,7 @@ if __name__ == "__main__":
                     for batch_data in BATCH_SIZES:
                         batch_size = batch_data[0]
                         data_list = benchmark_dict[batch_size]
-                        fout.write("{0}\t{1}\t{2}\t{3}\n".format(
+                        fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(
                                 img_siz, batch_size, data_list[0], data_list[1], data_list[2], data_list[3]
                             )
                         )
