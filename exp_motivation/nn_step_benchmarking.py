@@ -182,7 +182,8 @@ if __name__ == "__main__":
             if first_time_write:
                 with open("benchmark_{0}_nn_step.csv".format(network), "w") as fout:
                     fout.write("IMGDIM\tBatch Size\tprocess time\tTrain data load\n")
-                    for batch_size in BATCH_SIZES:
+                    for batch_data in BATCH_SIZES:
+                        batch_size = batch_data[0]
                         data_list = benchmark_dict[batch_size]
                         fout.write("{0}\t{1}\t{2}\t{3}\n".format(
                                 img_siz, batch_size, data_list[0], data_list[1]
@@ -191,7 +192,8 @@ if __name__ == "__main__":
                 first_time_write = False
             else:
                 with open("benchmark_{0}_nn_step.csv".format(network), "a") as fout:
-                    for batch_size in BATCH_SIZES:
+                    for batch_data in BATCH_SIZES:
+                        batch_size = batch_data[0]
                         data_list = benchmark_dict[batch_size]
                         fout.write("{0}\t{1}\t{2}\t{3}\n".format(
                                 img_siz, batch_size, data_list[0], data_list[1]
