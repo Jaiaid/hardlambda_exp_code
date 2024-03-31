@@ -86,7 +86,7 @@ def training_all_param_update(nn_model: torch.nn.Module, dataloader: torch.utils
             data_collection_count += 1
         except torch.cuda.OutOfMemoryError as e:
             print(
-                "batch size {0} for imagenet 3x224x224 is not suitable for forward pass and loss calc with GPU memory {1}GB".format(
+                "batch size {0} for cifar10 with given size is not suitable for forward pass and loss calc with GPU memory {1}GB".format(
                     batch_size, torch.cuda.mem_get_info()[1]>>30
                 )
             )
@@ -181,12 +181,12 @@ if __name__ == "__main__":
 
             if first_time_write:
                 with open("benchmark_{0}_nn_step.csv".format(network), "w") as fout:
-                    fout.write("IMGDIM\tBatch Size\tprocess time\tTrain data load\n")
+                    fout.write("IMGDIM\tBatch Size\tprocess time\tprocess time per sample\tTrain data load\ttrain data load per sample\n")
                     for batch_data in BATCH_SIZES:
                         batch_size = batch_data[0]
                         data_list = benchmark_dict[batch_size]
                         fout.write("{0}\t{1}\t{2}\t{3}\n".format(
-                                img_siz, batch_size, data_list[0], data_list[1]
+                                img_siz, batch_size, data_list[0], data_list[1], data_list[2], data_list[3]
                             )
                         )
                 first_time_write = False
@@ -196,7 +196,7 @@ if __name__ == "__main__":
                         batch_size = batch_data[0]
                         data_list = benchmark_dict[batch_size]
                         fout.write("{0}\t{1}\t{2}\t{3}\n".format(
-                                img_siz, batch_size, data_list[0], data_list[1]
+                                img_siz, batch_size, data_list[0], data_list[1], data_list[2], data_list[3]
                             )
                         )
 
