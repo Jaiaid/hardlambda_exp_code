@@ -9,7 +9,7 @@ from tqdm import tqdm
 from nvitop import Device, ResourceMetricCollector
 
 
-NETWORKS =  ["resnet18", "resnet50", "resnet101", "mobilenet_v2"]
+NETWORKS =  ["resnet50"]
 BATCH_SIZES = [256, 128, 64, 32, 16, 8, 4, 2, 1]
 LEARNING_RATE = 0.001
 NUMBER_OF_CLASSES = 1000
