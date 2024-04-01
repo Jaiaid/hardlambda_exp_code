@@ -238,6 +238,9 @@ def training_all_param_update(args, nn_model: torch.nn.Module, dataloader: torch
             # print("average loss calc time {0}s with batch size {1}".format(loss_time_count/iter_count, batch_size))
             # print("average backprop time {0}s with batch size {1}".format(bw_time_count/iter_count, batch_size))
             # print("average optimizer step time {0}s with batch size {1}".format(optstep_time_count/iter_count, batch_size))
+        # to ensure no_sync or sync things will wait here before next iteration
+        torch.cuda.synchronize()
+        dist.barrier()
     except Exception as e:
         print(e, args.rank)
     finally:
