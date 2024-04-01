@@ -242,7 +242,7 @@ def training_all_param_update(args, nn_model: torch.nn.Module, dataloader: torch
         print(e, args.rank)
     finally:
         dist.destroy_process_group()
-        
+
         # clear collector status
         collector.clear()
         collector.stop(tag="test")
@@ -252,7 +252,7 @@ def training_all_param_update(args, nn_model: torch.nn.Module, dataloader: torch
         allreduce_time = (all_reduce_fw_time_count + all_reduce_bw_time_count) - (fw_time_count + bw_time_count)
         
         # print("\n\n", data_collection_count, "\n\n")
-        return (fw_time_count + bw_time_count)/iter_count, (fw_time_count + bw_time_count)/(iter_count*batch_size), allreduce_time, allreduce_time/(iter_count * batch_size), train_data_load_time/iter_count, train_data_load_time/(iter_count*batch_size)
+        return (fw_time_count + bw_time_count)/(iter_count/2), (fw_time_count + bw_time_count)/((iter_count/2)*batch_size), allreduce_time/(iter_count/2), allreduce_time/((iter_count/2) * batch_size), train_data_load_time/iter_count, train_data_load_time/(iter_count*batch_size)
 
 
 if __name__ == "__main__":
@@ -294,7 +294,7 @@ if __name__ == "__main__":
                     for batch_data in BATCH_SIZES:
                         batch_size = batch_data[0]
                         data_list = benchmark_dict[batch_size]
-                        fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(
+                        fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n".format(
                                 img_siz, batch_size, data_list[0], data_list[1], data_list[2], data_list[3], data_list[4], data_list[5]
                             )
                         )
@@ -304,7 +304,7 @@ if __name__ == "__main__":
                     for batch_data in BATCH_SIZES:
                         batch_size = batch_data[0]
                         data_list = benchmark_dict[batch_size]
-                        fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\n".format(
+                        fout.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\n".format(
                                 img_siz, batch_size, data_list[0], data_list[1], data_list[2], data_list[3], data_list[4], data_list[5]
                             )
                         )
