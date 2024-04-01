@@ -285,7 +285,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     vms_peak.all_reduce()
     benchmark_data_dict[arch][args.sampler] = [data_time, cacheupdate_time, process_time, exec_time, rss_amount, vms_amount, rss_peak, vms_peak]
 
-    dist.barrier()
+    # dist.barrier()
     dist.destroy_process_group()
 
 def train(train_loader, model, criterion, optimizer, epoch, device, args, process_time, data_time,
@@ -361,9 +361,9 @@ class AverageMeter(object):
             device = torch.device("mps")
         else:
             device = torch.device("cpu")
-        # total = torch.tensor([self.sum, self.count], dtype=torch.float32, device=device)
-        # dist.all_reduce(total, dist.ReduceOp.SUM, async_op=False)
-        # self.sum, self.count = total.tolist()
+        total = torch.tensor([self.sum, self.count], dtype=torch.float32, device=device)
+        dist.all_reduce(total, dist.ReduceOp.SUM, async_op=False)
+        self.sum, self.count = total.tolist()
         self.avg = self.sum / self.count
 
     def __str__(self):
@@ -391,9 +391,9 @@ class MaxMeter(object):
             device = torch.device("mps")
         else:
             device = torch.device("cpu")
-        #max_tensor = torch.tensor([self.max], dtype=torch.float32, device=device)
-        #dist.all_reduce(max_tensor, dist.ReduceOp.MAX, async_op=False)
-        #self.max = max_tensor.tolist()[0]
+        max_tensor = torch.tensor([self.max], dtype=torch.float32, device=device)
+        dist.all_reduce(max_tensor, dist.ReduceOp.MAX, async_op=False)
+        self.max = max_tensor.tolist()[0]
 
     def __str__(self):
         return str(self.max)
