@@ -251,42 +251,45 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     vms_amount = AverageMeter()
     vms_peak = MaxMeter()
 
-    start_time = time.time()
-    for epoch in range(args.epochs):
-        if args.distributed:
-            # custom dataloader
-            train_loader.set_epoch(epoch)
+    try:
+        start_time = time.time()
+        for epoch in range(args.epochs):
+            if args.distributed:
+                # custom dataloader
+                train_loader.set_epoch(epoch)
 
-        # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, device, args, process_time=process_time, data_time=data_time,
-                cacheupdate_time=cacheupdate_time, memory_rss=rss_amount, memory_vms=vms_amount, rss_peak=rss_peak, vms_peak=vms_peak)
+            # train for one epoch
+            train(train_loader, model, criterion, optimizer, epoch, device, args, process_time=process_time, data_time=data_time,
+                    cacheupdate_time=cacheupdate_time, memory_rss=rss_amount, memory_vms=vms_amount, rss_peak=rss_peak, vms_peak=vms_peak)
 
-        scheduler.step()
-    
-    if args.sampler == "graddistbg":
-        data_mover.close()
-    if args.sampler == "shade":
-        # clean the cached data for next run
-        redis_host = 'localhost'  # Change this to your Redis server's host
-        redis_port = 6379  # Change this to your Redis server's port
-        redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
-        redis_client.flushdb()
+            scheduler.step()
+        
+        if args.sampler == "graddistbg":
+            data_mover.close()
+        if args.sampler == "shade":
+            # clean the cached data for next run
+            redis_host = 'localhost'  # Change this to your Redis server's host
+            redis_port = 6379  # Change this to your Redis server's port
+            redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
+            redis_client.flushdb()
 
-    exec_time.update(time.time() - start_time)
-    print("network {0} took {1}s".format(arch, str(exec_time)))
+        exec_time.update(time.time() - start_time)
+        print("network {0} took {1}s".format(arch, str(exec_time)))
 
-    process_time.all_reduce()
-    data_time.all_reduce()
-    cacheupdate_time.all_reduce()
-    exec_time.all_reduce()
-    rss_amount.all_reduce()
-    vms_amount.all_reduce()
-    rss_peak.all_reduce()
-    vms_peak.all_reduce()
-    benchmark_data_dict[arch][args.sampler] = [data_time, cacheupdate_time, process_time, exec_time, rss_amount, vms_amount, rss_peak, vms_peak]
-
-    dist.barrier()
-    dist.destroy_process_group()
+        process_time.all_reduce()
+        data_time.all_reduce()
+        cacheupdate_time.all_reduce()
+        exec_time.all_reduce()
+        rss_amount.all_reduce()
+        vms_amount.all_reduce()
+        rss_peak.all_reduce()
+        vms_peak.all_reduce()
+        benchmark_data_dict[arch][args.sampler] = [data_time, cacheupdate_time, process_time, exec_time, rss_amount, vms_amount, rss_peak, vms_peak]
+        dist.barrier()
+    except Exception as e:
+        print(e)
+    finally:
+        dist.destroy_process_group()
 
 def train(train_loader, model, criterion, optimizer, epoch, device, args, process_time, data_time,
           cacheupdate_time, memory_rss, memory_vms, rss_peak, vms_peak):
