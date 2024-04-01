@@ -78,22 +78,22 @@ def training_all_param_update(args, nn_model: torch.nn.Module, dataloader: torch
     dist.init_process_group(backend="gloo", init_method=args.dist_url,
                         world_size=2, rank=args.rank)
 
+    nn_model.cuda()
+    nn_model = torch.nn.parallel.DistributedDataParallel(nn_model)
+
+    # init loss and optimizer
+    loss_func = torch.nn.MSELoss()
+    optimizer = torch.optim.SGD(nn_model.parameters(), lr=LEARNING_RATE)
+
+    # this is for loss calculated forward backward
+    nn_model.train()
+    iter_count = 0
+    fw_time_count = 0
+    bw_time_count = 0
+    all_reduce_fw_time_count = 0
+    all_reduce_bw_time_count = 0
+    train_data_load_time = 0
     try:
-        nn_model.cuda()
-        nn_model = torch.nn.parallel.DistributedDataParallel(nn_model)
-
-        # init loss and optimizer
-        loss_func = torch.nn.MSELoss()
-        optimizer = torch.optim.SGD(nn_model.parameters(), lr=LEARNING_RATE)
-
-        # this is for loss calculated forward backward
-        nn_model.train()
-        iter_count = 0
-        fw_time_count = 0
-        bw_time_count = 0
-        all_reduce_fw_time_count = 0
-        all_reduce_bw_time_count = 0
-        train_data_load_time = 0
         data_load_start_time = time.time()
         for input_data, label in tqdm(dataloader, leave=False):
             # zero the optimizer grad
