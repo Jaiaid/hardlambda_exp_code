@@ -285,7 +285,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     vms_peak.all_reduce()
     benchmark_data_dict[arch][args.sampler] = [data_time, cacheupdate_time, process_time, exec_time, rss_amount, vms_amount, rss_peak, vms_peak]
 
-    # dist.barrier()
+    dist.barrier()
     dist.destroy_process_group()
 
 def train(train_loader, model, criterion, optimizer, epoch, device, args, process_time, data_time,
