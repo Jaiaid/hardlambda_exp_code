@@ -275,6 +275,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     exec_time.update(time.time() - start_time)
     print("network {0} took {1}s".format(arch, str(exec_time)))
 
+    dist.barrier()
     process_time.all_reduce()
     data_time.all_reduce()
     cacheupdate_time.all_reduce()
