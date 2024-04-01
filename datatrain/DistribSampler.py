@@ -92,7 +92,7 @@ class GradualDistAwareDistributedSamplerBG():
             range(
                 self.rank * num_batch_per_cache * self.batch_size,
                 min(self.rank * num_batch_per_cache * self.batch_size + end_idx * self.batch_size,
-                    int(self.total_size / self.num_caches))
+                    int(self.total_size / self.num_caches) * (self.rank + 1))
             )
         )
         # local shuffling
