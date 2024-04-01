@@ -275,7 +275,6 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     exec_time.update(time.time() - start_time)
     print("network {0} took {1}s".format(arch, str(exec_time)))
 
-    dist.barrier()
     process_time.all_reduce()
     data_time.all_reduce()
     cacheupdate_time.all_reduce()
@@ -311,31 +310,17 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, proces
         images = images.to(device, non_blocking=False)
         target = target.to(device, non_blocking=False)
 
-        if args.epoch_sync and i < len(train_loader)/args.batch_size-1:
-            with model.no_sync():
-                # compute output
-                output = model(images)
-                loss = criterion(output, target)
+        # compute output
+        output = model(images)
+        loss = criterion(output, target)
 
-                # measure accuracy and record loss
-                acc1, acc5 = accuracy(output, target, topk=(1, 5))
+        # measure accuracy and record loss
+        acc1, acc5 = accuracy(output, target, topk=(1, 5))
 
-                # compute gradient and do SGD step
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-        else:
-            # compute output
-            output = model(images)
-            loss = criterion(output, target)
-
-            # measure accuracy and record loss
-            acc1, acc5 = accuracy(output, target, topk=(1, 5))
-
-            # compute gradient and do SGD step
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+        # compute gradient and do SGD step
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 
         # measure elapsed time
         end = time.time()
@@ -376,9 +361,9 @@ class AverageMeter(object):
             device = torch.device("mps")
         else:
             device = torch.device("cpu")
-        total = torch.tensor([self.sum, self.count], dtype=torch.float32, device=device)
-        dist.all_reduce(total, dist.ReduceOp.SUM, async_op=False)
-        self.sum, self.count = total.tolist()
+        # total = torch.tensor([self.sum, self.count], dtype=torch.float32, device=device)
+        # dist.all_reduce(total, dist.ReduceOp.SUM, async_op=False)
+        # self.sum, self.count = total.tolist()
         self.avg = self.sum / self.count
 
     def __str__(self):
@@ -406,9 +391,9 @@ class MaxMeter(object):
             device = torch.device("mps")
         else:
             device = torch.device("cpu")
-        max_tensor = torch.tensor([self.max], dtype=torch.float32, device=device)
-        dist.all_reduce(max_tensor, dist.ReduceOp.MAX, async_op=False)
-        self.max = max_tensor.tolist()[0]
+        #max_tensor = torch.tensor([self.max], dtype=torch.float32, device=device)
+        #dist.all_reduce(max_tensor, dist.ReduceOp.MAX, async_op=False)
+        #self.max = max_tensor.tolist()[0]
 
     def __str__(self):
         return str(self.max)
