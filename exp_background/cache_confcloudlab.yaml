@@ -1,0 +1,11 @@
+cachedict: {
+  0: [ 192.168.0.1:26379, { offset: 0, length: 100, serviceport: 50524 } ],
+  1: [ 192.168.0.2:26379, { offset: 100, length: 100, serviceport: 50524 } ],
+  2: [ 192.168.0.3:26379, { offset: 200, length: 100, serviceport: 50524 } ],
+  3: [ 192.168.0.4:26379, { offset: 300, length: 100, serviceport: 50524 } ],
+  4: [ 192.168.0.5:26379, { offset: 400, length: 100, serviceport: 50524 } ],
+  5: [ 192.168.0.6:26379, { offset: 500, length: 100, serviceport: 50524 } ],
+  6: [ 192.168.0.7:26379, { offset: 600, length: 100, serviceport: 50524 } ],
+  7: [ 192.168.0.8:26379, { offset: 700, length: 100, serviceport: 50524 } ],
+}
+
