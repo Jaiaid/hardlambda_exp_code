@@ -1,8 +1,8 @@
-192.168.0.1 22 /proj/hybridmapreduce-PG0/exp/DDLsim-8node/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 0 IMGDIM 26379 0 cache_confcloudlab.yaml
-192.168.0.2 22 /proj/hybridmapreduce-PG0/exp/DDLsim-8node/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 100 IMGDIM 26379 1 cache_confcloudlab.yaml
-192.168.0.3 22 /proj/hybridmapreduce-PG0/exp/DDLsim-8node/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 200 IMGDIM 26379 2 cache_confcloudlab.yaml
-192.168.0.4 22 /proj/hybridmapreduce-PG0/exp/DDLsim-8node/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 300 IMGDIM 26379 3 cache_confcloudlab.yaml
-192.168.0.5 22 /proj/hybridmapreduce-PG0/exp/DDLsim-8node/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 400 IMGDIM 26379 4 cache_confcloudlab.yaml
-192.168.0.6 22 /proj/hybridmapreduce-PG0/exp/DDLsim-8node/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 500 IMGDIM 26379 5 cache_confcloudlab.yaml
-192.168.0.7 22 /proj/hybridmapreduce-PG0/exp/DDLsim-8node/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 600 IMGDIM 26379 6 cache_confcloudlab.yaml
-192.168.0.8 22 /proj/hybridmapreduce-PG0/exp/DDLsim-8node/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 700 IMGDIM 26379 7 cache_confcloudlab.yaml
+192.168.0.1 22 /users/Jaiaid/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 0 IMGDIM 26379 0 cache_confcloudlab.yaml
+192.168.0.2 22 /users/Jaiaid/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 100 IMGDIM 26379 1 cache_confcloudlab.yaml
+192.168.0.3 22 /users/Jaiaid/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 200 IMGDIM 26379 2 cache_confcloudlab.yaml
+192.168.0.4 22 /users/Jaiaid/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 300 IMGDIM 26379 3 cache_confcloudlab.yaml
+192.168.0.5 22 /users/Jaiaid/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 400 IMGDIM 26379 4 cache_confcloudlab.yaml
+192.168.0.6 22 /users/Jaiaid/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 500 IMGDIM 26379 5 cache_confcloudlab.yaml
+192.168.0.7 22 /users/Jaiaid/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 600 IMGDIM 26379 6 cache_confcloudlab.yaml
+192.168.0.8 22 /users/Jaiaid/hardlambda/hardlambda_exp_code/cache_scripts node_pool.sh 0,1 0,1 cifar10 . 100 700 IMGDIM 26379 7 cache_confcloudlab.yaml
