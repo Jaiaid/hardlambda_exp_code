@@ -20,4 +20,3 @@ sympy
 torch
 torchvision
 triton
-# nvidia-dali-cuda120
