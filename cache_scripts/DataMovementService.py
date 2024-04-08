@@ -256,7 +256,7 @@ class DataMoverService():
             global_exit = True
 
     def updatecache(self, batch_no: int) -> None:
-        for i in range(batch_no * self.batch_size, (batch_no + 1) * self.batch_size):
+        for i in range(batch_no * self.batch_size, min((batch_no + 1) * self.batch_size, self.cache_node_dict[self.getcache_idx][3])):
             # get
             databytes = self.cache_node_dict[self.getcache_idx][5].get("data"+str(i))
             labelbytes = self.cache_node_dict[self.getcache_idx][5].get("label"+str(i))
