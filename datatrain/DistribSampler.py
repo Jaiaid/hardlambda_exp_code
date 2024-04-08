@@ -82,17 +82,12 @@ class GradualDistAwareDistributedSamplerBG():
         self.rank = rank
 
     def __iter__(self) -> Iterator[T_co]:
-        final_indices = []
-        start_cache = self.rank
-
-        num_batch_per_cache = int(math.ceil(self.total_size / (self.num_caches * self.batch_size)))
+        num_sample_per_cache = int(math.ceil(self.total_size / self.num_caches))
         # we are not modding this for batch generation logic simplification
-        end_idx = num_batch_per_cache
         indices = list(
             range(
-                self.rank * num_batch_per_cache * self.batch_size,
-                min(self.rank * num_batch_per_cache * self.batch_size + end_idx * self.batch_size,
-                    int(self.total_size / self.num_caches) * (self.rank + 1))
+                self.rank * num_sample_per_cache,
+                (self.rank + 1) * num_sample_per_cache
             )
         )
         # local shuffling
