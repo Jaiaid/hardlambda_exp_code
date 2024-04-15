@@ -38,6 +38,16 @@ from datatrain.DistribSampler import DefaultDistributedSampler, GradualDistAware
 from datatrain.shade_modified import ShadeDataset, ShadeSampler
 from datatrain.DataMovementService import DataMoverServiceInterfaceClient
 
+
+# a dictionary containing processing time of A40 in a 2 node 
+TRACEDICT = {
+    1024: { 1:0.0623286008834838, 2:0.108904814720153, 4:0.189939379692077, 8:0.374637174606323, 16:0.753216195106506 },
+    512: { 1:0.0358312606811523, 2:0.0415159702301025, 4:0.0622847557067871, 8:0.105227065086364, 16:0.184193491935729, 32:0.347295188903808, 64:0.740264534950256 },
+    256: { 1:0.0359636783599853, 2:0.0369862794876098, 4:0.036202049255371, 8:0.0424602508544921, 16:0.0631789445877075, 32:0.103648972511291, 64:0.198982667922973, 128:0.379858064651489, 256:0.749177145957946 },
+    128: { 1:0.0386556386947631, 2:0.0379148006439209, 4:0.0378157138824462, 8:0.0379297018051147, 16:0.0381004333496093, 32:0.0452290296554565, 64:0.0665840625762939, 128:0.109326434135437, 256:0.186385774612426, 512:0.407417321205139, 1024:0.776486015319824 },
+    64: { 1:0.040898585319519, 2:0.0407503604888916, 4:0.0412042379379272, 8:0.0403494358062744, 16:0.0412073135375976, 32:0.0424924850463867, 64:0.0534211874008178, 128:0.0572318077087402, 256:0.0861500978469848, 512:0.1560560464859, 1024:0.288315463066101, 2048:0.499220657348632 },
+}
+
 # local cluster environment specific
 IMAGENET_DATA_DIR = "/sandbox1/data/imagenet/2017"
 # what size of image used
@@ -126,15 +136,39 @@ def main():
                     'You may see unexpected behavior when restarting '
                     'from checkpoints.')
 
+    if args.gpu is not None:
+        warnings.warn('You have chosen a specific GPU. This will completely '
+                    'disable data parallelism.')
 
     if args.dist_url == "env://" and args.world_size == -1:
         args.world_size = int(os.environ["WORLD_SIZE"])
 
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
 
-    args.dist_backend = "gloo"
-    ngpus_per_node = torch.cuda.device_count()
-    main_worker(args.gpu, ngpus_per_node, args, network_arch)    
+    if torch.cuda.is_available():
+        ngpus_per_node = torch.cuda.device_count()
+        # nccl does not work with single GPU
+        # https://discuss.pytorch.org/t/ncclinvalidusage-of-torch-nn-parallel-distributeddataparallel/133183
+        # https://discuss.ray.io/t/ray-train-parallelize-on-single-gpu/11483/2
+        if ngpus_per_node == 1:
+            args.dist_backend = "gloo"
+    else:
+        ngpus_per_node = 0
+        assert args.dist_backend != "nccl",\
+        "nccl backend does not work without GPU, see https://pytorch.org/docs/stable/distributed.html"
+    if args.multiprocessing_distributed:
+        # Since we have ngpus_per_node processes per node, the total world_size
+        # needs to be adjusted accordingly
+        args.world_size = ngpus_per_node * args.world_size
+        # Use torch.multiprocessing.spawn to launch distributed processes: the
+        # main_worker process function
+        mp.spawn(main_worker, nprocs=ngpus_per_node, args=(ngpus_per_node, args, network_arch))
+    else:
+        # Simply call main_worker function
+        main_worker(args.gpu, ngpus_per_node, args, network_arch)
+    
+    # print("Benchmarking for network: {0} and sampler: {1} could not be done".format(network_arch, sampler))
+        
 
     # dump the data
     # only rank 0 process will do that
@@ -159,27 +193,16 @@ def main():
 def main_worker(gpu, ngpus_per_node, args, arch):
     global data_mover, benchmark_data_dict
 
-    # added following
-    # https://github.com/pytorch/torchrec/issues/328
-    torch.cuda.set_device(args.rank%ngpus_per_node)
-    try:
-        # following https://github.com/lkeab/BCNet/issues/53
-        dist.init_process_group(backend=args.dist_backend, timeout=datetime.timedelta(seconds=100000), init_method=args.dist_url,
-                            world_size=args.world_size, rank=args.rank)
-    except Exception as e:
-        print(e, args.rank, args.world_size, ngpus_per_node)
-        sys.exit(0)
+    dist.init_process_group(backend=args.dist_backend, timeout=datetime.timedelta(seconds=100000), init_method=args.dist_url,
+                                world_size=args.world_size, rank=args.rank)
+
     # create model
     print("=> creating model '{}'".format(arch))
     model = models.__dict__[arch]()
-
-    model.cuda()
-    # DistributedDataParallel will divide and allocate batch_size to all
-    # available GPUs if device_ids are not set
     model = torch.nn.parallel.DistributedDataParallel(model)
-    device = torch.device("cuda")
+
     # define loss function (criterion), optimizer, and learning rate scheduler
-    criterion = nn.CrossEntropyLoss().to(device)
+    criterion = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
@@ -251,47 +274,44 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     vms_amount = AverageMeter()
     vms_peak = MaxMeter()
 
-    try:
-        start_time = time.time()
-        for epoch in range(args.epochs):
-            if args.distributed:
-                # custom dataloader
-                train_loader.set_epoch(epoch)
+    start_time = time.time()
+    for epoch in range(args.epochs):
+        if args.distributed:
+            # custom dataloader
+            train_loader.set_epoch(epoch)
 
-            # train for one epoch
-            train(train_loader, model, criterion, optimizer, epoch, device, args, process_time=process_time, data_time=data_time,
-                    cacheupdate_time=cacheupdate_time, memory_rss=rss_amount, memory_vms=vms_amount, rss_peak=rss_peak, vms_peak=vms_peak)
+        # train for one epoch
+        train(train_loader, model, criterion, optimizer, epoch, args, process_time=process_time, data_time=data_time,
+                cacheupdate_time=cacheupdate_time, memory_rss=rss_amount, memory_vms=vms_amount, rss_peak=rss_peak, vms_peak=vms_peak)
 
-            scheduler.step()
-        
-        if args.sampler == "graddistbg":
-            data_mover.close()
-        if args.sampler == "shade":
-            # clean the cached data for next run
-            redis_host = 'localhost'  # Change this to your Redis server's host
-            redis_port = 6379  # Change this to your Redis server's port
-            redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
-            redis_client.flushdb()
+        scheduler.step()
+    
+    if args.sampler == "graddistbg":
+        data_mover.close()
+    if args.sampler == "shade":
+        # clean the cached data for next run
+        redis_host = 'localhost'  # Change this to your Redis server's host
+        redis_port = 6379  # Change this to your Redis server's port
+        redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
+        redis_client.flushdb()
 
-        exec_time.update(time.time() - start_time)
-        print("network {0} took {1}s".format(arch, str(exec_time)))
+    exec_time.update(time.time() - start_time)
+    print("network {0} took {1}s".format(arch, str(exec_time)))
 
-        process_time.all_reduce()
-        data_time.all_reduce()
-        cacheupdate_time.all_reduce()
-        exec_time.all_reduce()
-        rss_amount.all_reduce()
-        vms_amount.all_reduce()
-        rss_peak.all_reduce()
-        vms_peak.all_reduce()
-        benchmark_data_dict[arch][args.sampler] = [data_time, cacheupdate_time, process_time, exec_time, rss_amount, vms_amount, rss_peak, vms_peak]
-        dist.barrier()
-    except Exception as e:
-        print(e)
-    finally:
-        dist.destroy_process_group()
+    process_time.all_reduce()
+    data_time.all_reduce()
+    cacheupdate_time.all_reduce()
+    exec_time.all_reduce()
+    rss_amount.all_reduce()
+    vms_amount.all_reduce()
+    rss_peak.all_reduce()
+    vms_peak.all_reduce()
+    benchmark_data_dict[arch][args.sampler] = [data_time, cacheupdate_time, process_time, exec_time, rss_amount, vms_amount, rss_peak, vms_peak]
 
-def train(train_loader, model, criterion, optimizer, epoch, device, args, process_time, data_time,
+    dist.barrier()
+    dist.destroy_process_group()
+
+def train(train_loader, model, criterion, optimizer, epoch, args, process_time, data_time,
           cacheupdate_time, memory_rss, memory_vms, rss_peak, vms_peak):
     global data_mover, image_size
     # switch to train mode
@@ -300,8 +320,8 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, proces
     end = time.time()
     for i, (images, target) in enumerate(train_loader):
         # to ensure data is actually read
-        images = images.to("cpu")
-        target = target.to("cpu")
+        images = images.to("cpu", non_blocking=False)
+        target = target.to("cpu", non_blocking=False)
         # measure data loading time
         data_time.update(time.time() - end)
         if args.sampler == "graddistbg":
@@ -311,22 +331,8 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, proces
             cacheupdate_time.update(time.time() - cacheupdate_cmd_send_time)
 
         process_start_time = time.time()
-        # move data to the same device as model
-        image_size = images.shape
-        images = images.to(device, non_blocking=False)
-        target = target.to(device, non_blocking=False)
-
-        # compute output
-        output = model(images)
-        loss = criterion(output, target)
-
-        # measure accuracy and record loss
-        acc1, acc5 = accuracy(output, target, topk=(1, 5))
-
-        # compute gradient and do SGD step
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+        # simulate the processing through provided trace dictionary
+        time.sleep(TRACEDICT[images[2]][args.batch_size])
 
         # measure elapsed time
         end = time.time()
