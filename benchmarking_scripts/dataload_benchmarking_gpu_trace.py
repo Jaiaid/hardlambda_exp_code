@@ -332,7 +332,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args, process_time, 
 
         process_start_time = time.time()
         # simulate the processing through provided trace dictionary
-        time.sleep(TRACEDICT[images[2]][args.batch_size])
+        image_size = images.shape
+        time.sleep(TRACEDICT[images.shape[2]][args.batch_size])
 
         # measure elapsed time
         end = time.time()
