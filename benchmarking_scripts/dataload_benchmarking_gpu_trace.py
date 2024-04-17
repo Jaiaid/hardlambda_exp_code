@@ -184,7 +184,7 @@ def main():
             rss_peak = benchmark_data_dict[network_arch][sampler][6]
             vms_peak = benchmark_data_dict[network_arch][sampler][7]
             fout.write(
-                "{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\n".format(
+                "{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12}\n".format(
                     network_arch, args.batch_size, image_size[2], args.epochs, sampler+"_ereduce" if args.epoch_sync else sampler, datatime, cache_time,
                     processtime, exec_time, rss, vms, rss_peak, vms_peak
                 )
