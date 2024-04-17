@@ -1,4 +1,4 @@
-129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 4 tcp://10.21.12.241:44144 eno2 0 cache_conf5.yaml IMGDIM
-129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/exp_background process.sh 1 1 NETARCH SAMPLER BS EPOCH 4 tcp://10.21.12.241:44144 eno2 1 cache_conf5.yaml IMGDIM
-129.21.22.242 1440 ~/hardlambda/code/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 4 tcp://10.21.12.241:44144 eno2 2 cache_conf5.yaml IMGDIM
-129.21.22.242 1440 ~/hardlambda/code/hardlambda_exp_code/exp_background process.sh 1 1 NETARCH SAMPLER BS EPOCH 4 tcp://10.21.12.241:44144 eno2 3 cache_conf5.yaml IMGDIM
+129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/exp_ablation process.sh 0 0 NETARCH SAMPLER BS EPOCH 4 tcp://10.21.12.241:44144 eno2 0 cache_conf5.yaml IMGDIM
+129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/exp_ablation process.sh 1 1 NETARCH SAMPLER BS EPOCH 4 tcp://10.21.12.241:44144 eno2 1 cache_conf5.yaml IMGDIM
+129.21.22.242 1440 ~/hardlambda/code/hardlambda_exp_code/exp_ablation process.sh 0 0 NETARCH SAMPLER BS EPOCH 4 tcp://10.21.12.241:44144 eno2 2 cache_conf5.yaml IMGDIM
+129.21.22.242 1440 ~/hardlambda/code/hardlambda_exp_code/exp_ablation process.sh 1 1 NETARCH SAMPLER BS EPOCH 4 tcp://10.21.12.241:44144 eno2 3 cache_conf5.yaml IMGDIM
