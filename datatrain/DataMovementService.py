@@ -278,8 +278,19 @@ class DataMoverService():
 
 class DataMoverServiceInterfaceClient():
     def __init__(self, ip: str, port: str):
+        print(ip, port, flush=True)
+        print("creating socket", flush=True)
         self.connection_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.connection_socket.connect((ip, int(port)))
+        self.connection_socket.settimeout(10)
+        print("connecting...", flush=True)
+        try:
+            self.connection_socket.connect((ip, int(port)))
+            print("connection successful", flush=True)
+        except Exception as e:
+            print(e)
+            print("socket connection to service failed, raising exception")
+            raise e
+
         self.first_time = True
         self.busy = False
 
