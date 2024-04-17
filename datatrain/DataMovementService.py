@@ -281,6 +281,7 @@ class DataMoverServiceInterfaceClient():
         self.connection_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.connection_socket.connect((ip, int(port)))
         self.first_time = True
+        self.busy = False
 
     @staticmethod
     def convert_to_cmdbuffer(cmd_string: str) -> bytearray:
@@ -289,35 +290,43 @@ class DataMoverServiceInterfaceClient():
         buffer[:len(cmdbytes)] = cmdbytes
         return buffer
 
+    def is_busy_check(self) -> bool:
+        # this is a blocking method
+        # so a state will also be set, to avoid blokcing in case of multiple call
+        if self.busy:
+            cmd = self.connection_socket.recv(4).decode("utf-8")
+            self.busy = not (cmd[0:4] == "done")
+        return self.busy
+
     def updatecache(self, batch_no: int) -> None:
         # recv from trainer
         # cmd size will be DataMoverService.MAXCMD_SIZE byte
         # if not first time see if you have received any "done" message"
         if not self.first_time:
-            cmd = ""
-            while cmd[0:4] != "done":
-                cmd = self.connection_socket.recv(4).decode("utf-8")
+            self.is_busy_check()
         self.first_time = False
 
         # send the cmd
         self.connection_socket.send(
             DataMoverServiceInterfaceClient.convert_to_cmdbuffer("batch"))
         self.connection_socket.send(int.to_bytes(batch_no, length=4, byteorder="little"))
+        # now a cmd is send, set status to busy
+        self.busy = True
 
     def set_batchsize(self, batch_size:int) -> None:
         # recv from trainer
         # cmd size will be DataMoverService.MAXCMD_SIZE byte
         # if not first time see if you have received any "done" message"
         if not self.first_time:
-            cmd = ""
-            while cmd[0:4] != "done":
-                cmd = self.connection_socket.recv(4).decode("utf-8")
+            self.is_busy_check()
         self.first_time = False
 
         # send the cmd
         self.connection_socket.send(
             DataMoverServiceInterfaceClient.convert_to_cmdbuffer("bs"))
         self.connection_socket.send(int.to_bytes(batch_size, length=4, byteorder="little"))
+        # now a cmd is send, set status to busy
+        self.busy = True
         
     def close(self):
         # this check is done to confirm final update is done
@@ -325,9 +334,7 @@ class DataMoverServiceInterfaceClient():
         # create a pending status and pending_expected message attribute
         # don't execute any next status until pending is cleared with expected message
         if not self.first_time:
-            cmd = ""
-            while cmd[0:4] != "done":
-                cmd = self.connection_socket.recv(4).decode("utf-8")
+            self.is_busy_check()
         # send the cmd
         self.connection_socket.send(
             DataMoverServiceInterfaceClient.convert_to_cmdbuffer("exit"))
