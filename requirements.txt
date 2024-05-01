@@ -17,5 +17,7 @@ typing_extensions
 pyyaml
 six
 sympy
-torch
-torchvision
+torch<=2.2.0
+torchvision<=0.17.0
+tqdm
+nvitop
