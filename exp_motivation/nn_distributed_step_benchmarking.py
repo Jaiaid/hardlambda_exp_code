@@ -52,6 +52,11 @@ parser.add_argument('--rank', default=-1, type=int,
                     help='node rank for distributed training')
 parser.add_argument('--dist-url', default='tcp://10.21.12.239:44144', type=str,
                     help='url used to set up distributed training')
+parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
+                    choices=model_names,
+                    help='model architecture: ' +
+                        ' | '.join(model_names) +
+                        ' (default: resnet18)')
 
 # will do full update through standard pytorch optim module
 def training_all_param_update(args, nn_model: torch.nn.Module, dataloader: torch.utils.data.DataLoader, batch_size: int, maxiter: int):
@@ -260,6 +265,8 @@ def training_all_param_update(args, nn_model: torch.nn.Module, dataloader: torch
 
 if __name__ == "__main__":
     args = parser.parse_args()
+
+    NETWORKS = [args.arch] 
 
     for network in NETWORKS:
         benchmark_dict = {}
