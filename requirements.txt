@@ -11,8 +11,6 @@ networkx
 numpy
 pillow
 psutil
-redis
-redis-py-cluster
 typing_extensions
 pyyaml
 six
@@ -21,3 +19,6 @@ torch<=2.2.0
 torchvision<=0.17.0
 tqdm
 nvitop
+nvidia-dali-cuda120
+redis
+redis-py-cluster
