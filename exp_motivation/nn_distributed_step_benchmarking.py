@@ -2,6 +2,7 @@ import copy
 import random
 import time
 import math
+import os
 import argparse
 
 import torch
@@ -58,6 +59,9 @@ parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
                         ' | '.join(model_names) +
                         ' (default: resnet18)')
 
+parser.add_argument("-if", "--iface", type=str, help="network device name", default="lo", required=False)
+
+
 # will do full update through standard pytorch optim module
 def training_all_param_update(args, nn_model: torch.nn.Module, dataloader: torch.utils.data.DataLoader, batch_size: int, maxiter: int):
     global gpu_utilization_list
@@ -79,6 +83,9 @@ def training_all_param_update(args, nn_model: torch.nn.Module, dataloader: torch
     # move to GPU
     torch.cuda.set_device(args.rank%torch.cuda.device_count())
     
+    os.environ["MASTER_ADDR"] = args.dist_url.split(":")[1][2:]
+    os.environ["MASTER_PORT"] = args.dist_url.split(":")[2]
+    os.environ["GLOO_SOCKET_IFNAME"] = args.iface
     # following https://github.com/lkeab/BCNet/issues/53
     dist.init_process_group(backend="gloo", init_method=args.dist_url,
                         world_size=2, rank=args.rank)
