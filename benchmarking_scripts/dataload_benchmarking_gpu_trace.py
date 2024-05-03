@@ -40,14 +40,9 @@ from datatrain.DataMovementService import DataMoverServiceInterfaceClient
 
 
 # a dictionary containing processing time of A40 in a 2 node 
-TRACEDICT = {
-    1024: { 1:0.0623286008834838, 2:0.108904814720153, 4:0.189939379692077, 8:0.374637174606323, 16:0.753216195106506 },
-    512: { 1:0.0358312606811523, 2:0.0415159702301025, 4:0.0622847557067871, 8:0.105227065086364, 16:0.184193491935729, 32:0.347295188903808, 64:0.740264534950256 },
-    256: { 1:0.0359636783599853, 2:0.0369862794876098, 4:0.036202049255371, 8:0.0424602508544921, 16:0.0631789445877075, 32:0.103648972511291, 64:0.198982667922973, 128:0.379858064651489, 256:0.749177145957946 },
-    128: { 1:0.0386556386947631, 2:0.0379148006439209, 4:0.0378157138824462, 8:0.0379297018051147, 16:0.0381004333496093, 32:0.0452290296554565, 64:0.0665840625762939, 128:0.109326434135437, 256:0.186385774612426, 512:0.407417321205139, 1024:0.776486015319824 },
-    64: { 1:0.040898585319519, 2:0.0407503604888916, 4:0.0412042379379272, 8:0.0403494358062744, 16:0.0412073135375976, 32:0.0424924850463867, 64:0.0534211874008178, 128:0.0572318077087402, 256:0.0861500978469848, 512:0.1560560464859, 1024:0.288315463066101, 2048:0.499220657348632 },
-}
-
+TRACEDICT_DATAFILE_TEMPLATE = "simdata/benchmark_{0}_nn_step.csv" 
+# trace data dict
+TRACE_DATA_DICT = {}
 # local cluster environment specific
 IMAGENET_DATA_DIR = "/sandbox1/data/imagenet/2017"
 # what size of image used
@@ -191,7 +186,23 @@ def main():
             )
 
 def main_worker(gpu, ngpus_per_node, args, arch):
-    global data_mover, benchmark_data_dict
+    global data_mover, benchmark_data_dict, TRACE_DATA_DICT
+
+    # read trace data
+    with open(TRACEDICT_DATAFILE_TEMPLATE.format(args.arch)) as fin:
+        for i, line in enumerate(fin.readlines()):
+            if i == 0:
+                continue
+            tokens = line.rsplit()
+            bs = int(tokens[1])
+            dim = int(tokens[2])
+
+            allreduce_time_per_sample = float(tokens[5])
+            process_time_per_sample = float(tokens[3])
+
+            if dim not in TRACE_DATA_DICT:
+                TRACE_DATA_DICT[dim] = {}
+            TRACE_DATA_DICT[dim][bs] = [process_time_per_sample, allreduce_time_per_sample]
 
     dist.init_process_group(backend=args.dist_backend, timeout=datetime.timedelta(seconds=100000), init_method=args.dist_url,
                                 world_size=args.world_size, rank=args.rank)
@@ -333,9 +344,13 @@ def train(train_loader, model, criterion, optimizer, epoch, args, process_time, 
         process_start_time = time.time()
         # simulate the processing through provided trace dictionary
         image_size = images.shape
+        # from DeAR: Accelerating Distributed Deep Learning with Fine-Grained All-Reduce Pipelining
+        simulated_delay_time =\
+        TRACE_DATA_DICT[images.shape[2]][args.batch_size][0] * args.batch_size +\
+        TRACE_DATA_DICT[images.shape[2]][args.batch_size][1] * args.batch_size * (args.world_size - 1)/2
         # busy loop
         # sleeping is not good idea as waking up time is not guaranteed
-        while time.time() - process_start_time < TRACEDICT[images.shape[2]][args.batch_size]:
+        while time.time() - process_start_time < simulated_delay_time:
             pass
 
         # measure elapsed time
