@@ -1,0 +1,7 @@
+cachedict: {
+  0: [ 192.168.0.1:26379, { offset: 0, length: 640, serviceport: 50524 } ],
+  1: [ 192.168.0.2:26380, { offset: 640, length: 640, serviceport: 50524 } ],
+  2: [ 192.168.0.3:26381, { offset: 1280, length: 640, serviceport: 50524 } ],
+  3: [ 192.168.0.4:26382, { offset: 1920, length: 640, serviceport: 50524 } ]
+}
+

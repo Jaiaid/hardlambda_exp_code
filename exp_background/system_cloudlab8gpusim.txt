@@ -1,8 +1,8 @@
-192.168.0.1 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 0 cache_confcloudlab.yaml IMGDIM
-192.168.0.2 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 1 cache_confcloudlab.yaml IMGDIM
-192.168.0.3 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 2 cache_confcloudlab.yaml IMGDIM
-192.168.0.4 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 3 cache_confcloudlab.yaml IMGDIM
-192.168.0.5 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 4 cache_confcloudlab.yaml IMGDIM
-192.168.0.6 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 5 cache_confcloudlab.yaml IMGDIM
-192.168.0.7 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 6 cache_confcloudlab.yaml IMGDIM
-192.168.0.8 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 7 cache_confcloudlab.yaml IMGDIM
+192.168.0.1 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 0 cache_confcloudlab_8worker.yaml IMGDIM
+192.168.0.2 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 1 cache_confcloudlab_8worker.yaml IMGDIM
+192.168.0.3 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 2 cache_confcloudlab_8worker.yaml IMGDIM
+192.168.0.4 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 3 cache_confcloudlab_8worker.yaml IMGDIM
+192.168.0.5 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 4 cache_confcloudlab_8worker.yaml IMGDIM
+192.168.0.6 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 5 cache_confcloudlab_8worker.yaml IMGDIM
+192.168.0.7 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 6 cache_confcloudlab_8worker.yaml IMGDIM
+192.168.0.8 22 /proj/hybridmapreduce-PG0/exp/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 8 tcp://192.168.0.1:44144 enp1s0d1 7 cache_confcloudlab_8worker.yaml IMGDIM
