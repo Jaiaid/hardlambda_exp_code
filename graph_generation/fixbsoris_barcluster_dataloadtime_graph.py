@@ -1,173 +1,140 @@
-import pandas as pd
-import matplotlib.pyplot as plt
+import os
+import matplotlib.pyplot as plot
 import numpy as np
+import argparse
 
-df = pd.read_csv('4a4000_dim128_dim64_alldata.tsv', delimiter=',')
+COMPARED_SYSTEM_LABEL_DICT = {"default": "Default", "dali": "Dali", "shade": "SHADE", "graddistbg": "Proposed"}
+NETWORK_NAMES_LABEL_DICT = {"mobilenet_v2": "MobileNet-V2", "resnet18": "ResNet-18", "resnet50": "ResNet-50", "resnet101": "ResNet-101"}
+# hatchlist = ['\\', '\\', '\\', '\\', '/', '/', '/', '/', 'o', 'o', 'o', 'o', 'x', 'x', 'x', 'x']
+hatchlist = ['\\', '/', 'o', 'x']
+DATAFILE_PATH = "4a4000_alldata.tsv"
 
-# Unique network architectures
-network_archs = df['Network Arch'].unique()
+BS_LIST = [16, 32, 64]
+DIM_LIST = [128, 256]
 
-# Define a colormap for the samplers, assuming known sampler names
-sampler_colors = {
-    'default': 'red',
-    'dali': 'blue',
-    'shade': 'green',
-    'graddistbg': 'yellow'
-}
+# a dictionary containing processing time of A40 in a 2 node 
+TRACEDICT_DATAFILE_TEMPLATE = "../exp_background/simdata/benchmark_{0}_nn_step.csv" 
+# trace data dict
+TRACE_DATA_DICT = {}
 
-hatchlist = ['\\', '\\', '\\', '\\', '/', '/', '/', '/', 'o', 'o', 'o', 'o', 'x', 'x', 'x', 'x']
-labellist = ["MobileNet-V2", "ResNet-18", "ResNet-50", "ResNet-101"]
-# preprocess
+if __name__=="__main__":
+    # parser = argparse.ArgumentParser(description='to get input data file path for scalability draw')
+    # parser.add_argument("-i", "--input", type=str, help="path to csv/tsv file", required=True)
+    # args = parser.parse_args()
+    data_dict = {}
 
+    for network_name in NETWORK_NAMES_LABEL_DICT:
+        TRACE_DATA_DICT[network_name] = {}
+        # read trace data
+        with open(TRACEDICT_DATAFILE_TEMPLATE.format(network_name)) as fin:
+            for i, line in enumerate(fin.readlines()):
+                if i == 0:
+                    continue
+                tokens = line.rsplit()
+                bs = int(tokens[1])
+                dim = int(tokens[0])
 
-def normalize_by_default(group):
-    # If the 'dataload time' for `default` sample is not found, then cannot normalize, just return
-    # if (len(group[group['Sampler'] == 'default']['dataload time'].values)) == 0:
-    #     return group
-    default_time = group[group['Sampler'] == 'default']['dataload time'].values[0]
-    # Calculate normalized speed up 'dataload time'
-    group['normed'] = 1 / \
-        (group['dataload time'] / default_time)
-    return group
+                allreduce_time_per_sample = float(tokens[5])
+                process_time_per_sample = float(tokens[3])
 
+                if dim not in TRACE_DATA_DICT[network_name]:
+                    TRACE_DATA_DICT[network_name][dim] = {}
+                TRACE_DATA_DICT[network_name][dim][bs] = [process_time_per_sample, allreduce_time_per_sample]
+                
+    with open(DATAFILE_PATH) as fin:
+        for i, line in enumerate(fin.readlines()):
+            if i == 0:
+                continue
 
-df['dataload time'] = pd.to_numeric(df['dataload time'], errors='coerce')
-# to normalize data load time by default sampler, and convert to speed up
-normalized_filtered_df = df.groupby(
-    ['Batch Size', 'Image Size', 'Network Arch']).apply(normalize_by_default)
+            tokens = line.replace(',','\t').rsplit()
+            network_name = tokens[0]
+            bs = int(tokens[1])
+            dim = int(tokens[2])
+            sampler = tokens[4]
 
-normalized_filtered_df = normalized_filtered_df.reset_index(drop=True)
-normalized_filtered_df.to_csv('normalized.csv', index=False, header=False)
-print("dumped:", 'normalized.csv')
-df = normalized_filtered_df
-df['normed'] = pd.to_numeric(df['normed'], errors='coerce')
+            dl_time = float(tokens[5])
+            cu_time = float(tokens[6])
+            p_time = float(tokens[7])
+            exec_time = float(tokens[8])
 
-# dump each <network, image size> for later
-for (net_arch, img_size), sub_group in df.groupby(['Network Arch', 'Image Size']):
-    file_name = f'{net_arch}_{img_size}.csv'
-    # print(file_name)
-    sub_group.to_csv(file_name, index=False, header=False)
-# exit(0)
+            if network_name not in data_dict:
+                data_dict[network_name] = {}
 
-df_chosen = None
+            if sampler not in data_dict[network_name]:
+                data_dict[network_name][sampler] = {}
+            if bs not in data_dict[network_name][sampler]:
+                data_dict[network_name][sampler][bs] = {}
+            if dim not in data_dict[network_name][sampler][bs]:
+                data_dict[network_name][sampler][bs][dim] = [0, 0, 0, 0]
+            try:
+                data_dict[network_name][sampler][bs][dim][0] = dl_time
+                data_dict[network_name][sampler][bs][dim][2] = exec_time# dl_time + cu_time + (TRACE_DATA_DICT[network_name][dim][bs][0] + TRACE_DATA_DICT[network_name][dim][bs][1]) * bs 
+            except Exception as e:
+                print(network_name, dim, bs)
+                pass
 
+        # 2nd pass to normalize value w.r.t 4 worker data
+        with open(DATAFILE_PATH) as fin:
+            for i, line in enumerate(fin.readlines()):
+                if i == 0:
+                    continue
 
-def gen_plot_4_fixed_image_size():
-    IMG_SZ = 128  # 32, 64, 128, 256, 512
-    for image_size, sub_group in df.groupby('Image Size'):
-        if image_size == IMG_SZ:
-            df_chosen = sub_group
-            break
-    for batch_size, sub_group in df_chosen.groupby('Batch Size'):
-        pivot = sub_group.pivot_table(
-            index='Network Arch', columns='Sampler', values='normed', aggfunc='first')
-        # sort to create the sequence mobilenet, resnet18, resnet50, resnet101
-        pivot = pivot.sort_values(by=["Network Arch"], key=lambda x: x.map({"mobilenet_v2": 0, "resnet18": 1, "resnet50": 2, "resnet101": 3}))
-        pivot = pivot.reindex(columns=["default", "dali", "shade", "graddistbg"])
-        # Plot
-        ax = pivot.plot(kind='bar', figsize=(5, 3))
-        bars = ax.patches
-        for bar, hatch in zip(bars, hatchlist):
-            bar.set_hatch(hatch)
-        ax.set_xticks(list(range(len(labellist))))
-        ax.set_xticklabels(labellist)
+                tokens = line.replace(',','\t').rsplit()
+                network_name = tokens[0]
+                bs = int(tokens[1])
+                dim = int(tokens[2])
+                sampler = tokens[4]
 
-        plt.title(f'Batch Size: {batch_size}, Image Size: {IMG_SZ}')
-        plt.xlabel('Network Arch')
-        plt.ylabel('Normalized Dataload Time Speed Up')
-        plt.legend(loc='upper right', ncol=2)
-        plt.xticks(rotation=0)
-        plt.ylim([0, 6])
-        plt.grid(axis='y')
-        plt.tight_layout()
-        plt.savefig(f'figures/dltime_bs{batch_size}_is{image_size}.png')
-    return
+                dl_time = float(tokens[5])
+                cu_time = float(tokens[6])
+                p_time = float(tokens[7])
+                exec_time = float(tokens[8])
+                try:
+                    data_dict[network_name][sampler][bs][dim][1] = data_dict[network_name]["default"][bs][dim][0]/dl_time
+                    data_dict[network_name][sampler][bs][dim][3] = data_dict[network_name]["default"][bs][dim][2]/exec_time#(dl_time + cu_time + (TRACE_DATA_DICT[network_name][dim][bs][0] + TRACE_DATA_DICT[network_name][dim][bs][1]) * bs)
+                except Exception as e:
+                    # print(network_name, dim, bs)
+                    pass
 
+    for dim in DIM_LIST:
+        for bs in BS_LIST:
+            # plot and axis object
+            fig, ax = plot.subplots(figsize=(4, 2.25))
+            # ax1, ax2 = ax.twinx()
+            xtick_labels = []
+            bias = 0.6/len(NETWORK_NAMES_LABEL_DICT) 
+            width = 0.15
 
-def gen_plot_4_fixed_batch_size():
-    BATCH_SZ = 32  # 2, 4, 8, 16, 32, 64
-    for batch_size, sub_group in df.groupby('Batch Size'):
-        if batch_size == BATCH_SZ:
-            df_chosen = sub_group
-            break
-    for image_size, sub_group in df_chosen.groupby('Image Size'):
-        pivot = sub_group.pivot_table(
-            index='Network Arch', columns='Sampler', values='normed', aggfunc='first')
-        pivot = pivot.sort_values(by=["Network Arch"], key=lambda x: x.map({"mobilenet_v2": 0, "resnet18": 1, "resnet50": 2, "resnet101": 3}))
-        pivot = pivot.reindex(columns=["default", "dali", "shade", "graddistbg"])
-        # Plot
-        ax = pivot.plot(kind='bar', figsize=(5, 3))
-        bars = ax.patches
-        for bar, hatch in zip(bars, hatchlist):
-            bar.set_hatch(hatch)
-        ax.set_xticks(list(range(len(labellist))))
-        ax.set_xticklabels(labellist)
-        # Plot
-        plt.title(f'Batch Size: {BATCH_SZ}, Image Size: {image_size}')
-        plt.xlabel('Network Arch')
-        plt.ylabel('Normalized Dataload Time Speed Up')
-        plt.legend(loc='upper right', ncol=2)
-        plt.xticks(rotation=0)
-        plt.grid(axis='y')
-        plt.ylim([0, 6])
-        plt.tight_layout()
-        plt.savefig(f'figures/dltime_bs{batch_size}_is{image_size}.png')
-    return
+            for i, sampler in enumerate(COMPARED_SYSTEM_LABEL_DICT):
+                try:
+                    datalist = [data_dict[network_name][sampler][bs][dim][1] if dim in data_dict[network_name][sampler][bs] else 0 for network_name in NETWORK_NAMES_LABEL_DICT]
+                    offset = (i-1.5) * bias
+                    ax.bar(np.arange(0, len(COMPARED_SYSTEM_LABEL_DICT)) + offset, datalist,
+                        label=COMPARED_SYSTEM_LABEL_DICT[sampler], width=width, hatch=hatchlist[i])
+                except Exception as e:
+                    print(network_name, dim, bs, datalist)
+                    pass
+            # print(np.arange(0, len(NETWORK_NAMES)))
+            # set the legends and limit in y axis
+            #ax.legend(ncol=3, loc="upper center", fontsize=6, frameon=False)
+            #ax.get_legend().get_frame().set_alpha(None)
+            #ax.get_legend().get_frame().set_facecolor((1, 1, 1, 0.1))
+            # ax.set_yscale("log")
 
+            plot.tick_params(axis='y', which='major', labelsize=6)
+            plot.xticks(fontsize=8)
+            plot.xticks(np.arange(0, len(NETWORK_NAMES_LABEL_DICT)), [NETWORK_NAMES_LABEL_DICT[network_name] for  network_name in NETWORK_NAMES_LABEL_DICT])
 
-def gen_stacked_plot():
-    for arch in network_archs:
-        # print(arch)
-        arch_df = df[df['Network Arch'] == arch]
-        image_sizes = arch_df['Image Size'].unique()
-        image_sizes.sort()
-
-        fig, ax = plt.subplots(figsize=(5, 3))
-        ax.set_title(f'Dataload Time for Network Arch: {arch}')
-
-        group_offset = np.arange(len(image_sizes))
-        bar_width = 0.15
-
-        # Keep track of which samplers have been added to the legend
-        added_to_legend = set()
-
-        for i, size in enumerate(image_sizes):
-            size_df = arch_df[arch_df['Image Size'] == size]
-            batch_sizes = size_df['Batch Size'].unique()
-            batch_sizes.sort()
-
-            for j, batch_size in enumerate(batch_sizes):
-                batch_df = size_df[size_df['Batch Size'] == batch_size]
-                bottom_offset = 0
-
-                for sampler, color in sampler_colors.items():
-                    sampler_df = batch_df[batch_df['Sampler'] == sampler]
-
-                    if not sampler_df.empty:
-                        dataload_time = sampler_df['normed'].iloc[0]
-                        # print(dataload_time)
-                        label = sampler if sampler not in added_to_legend else ""
-                        ax.bar(i + j*bar_width, dataload_time, bar_width, bottom=bottom_offset,
-                               color=color, label=label)
-                        bottom_offset += dataload_time
-
-                        if label:  # This means the sampler was not previously added to the legend
-                            added_to_legend.add(sampler)
-
-        ax.set_xticks(group_offset + bar_width / 2 * (len(batch_sizes)-2))
-        ax.set_xticklabels(image_sizes)
-
-        ax.set_xlabel('Image Size')
-        ax.set_ylabel('Normalized Dataload Time Speedup')
-
-        # Now, only unique legend labels are added
-        plt.legend(ncol=4)
-
-        # plt.show()
-        plt.tight_layout()
-        plt.savefig(f'figures/{arch}.png')
-
-
-gen_plot_4_fixed_image_size()
-gen_plot_4_fixed_batch_size()
-# gen_stacked_plot()
+            plot.tick_params(axis='y', which='major', labelsize=8)
+            plot.yticks(fontsize=8)
+            ax.set_yticks(np.arange(0, 9, 1), minor=False)
+            # ax.set_yticks(np.arange(0, 2, 0.1), minor=True)
+            plot.grid(axis='y', which='major')
+            ax.set_ylim([0, 9])
+            # ax.set_xticklabels(BAR_LABELS, {'fontsize':8, 'fontweight': "bold"})
+            ax.set_ylabel("Normalized Speedup", {'fontsize':8})
+            ax.set_xlabel("", {'fontsize':9})
+            ax.legend(ncol=2, fontsize=8, frameon=False, handlelength=4, handleheight=1.1)
+            
+            fig.savefig("figures/dltime_bs{0}_is{1}.png".format(bs, dim), dpi=600, bbox_inches="tight")
+            # fig.savefig("exectime_bs{0}_is{1}.png".format(bs, dim), format="pdf", bbox_inches="tight")
