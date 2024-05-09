@@ -51,23 +51,24 @@ if __name__=="__main__":
                 if dim not in data_dict[worker_count_key][sampler][bs]:
                     data_dict[worker_count_key][sampler][bs][dim] = [0, 0, 0, 0, 0, 0, 0, 0]
                 
-                if network_name == "mobilenet_v2":
-                    data_dict[worker_count_key][sampler][bs][dim][4] = exec_time
-                elif network_name == "resnet18":
-                    data_dict[worker_count_key][sampler][bs][dim][5] = exec_time
-                elif network_name == "resnet50":
-                    data_dict[worker_count_key][sampler][bs][dim][6] = exec_time
-                elif network_name == "resnet101":
-                    data_dict[worker_count_key][sampler][bs][dim][7] = exec_time
+                if sampler == "gradistbg":
+                    if network_name == "mobilenet_v2":
+                        data_dict[worker_count_key][sampler][bs][dim][4] = dl_time
+                    elif network_name == "resnet18":
+                        data_dict[worker_count_key][sampler][bs][dim][5] = dl_time
+                    elif network_name == "resnet50":
+                        data_dict[worker_count_key][sampler][bs][dim][6] = dl_time
+                    elif network_name == "resnet101":
+                        data_dict[worker_count_key][sampler][bs][dim][7] = dl_time
 
                 if network_name == "mobilenet_v2":
-                    data_dict[worker_count_key][sampler][bs][dim][0] = exec_time
+                    data_dict[worker_count_key][sampler][bs][dim][0] = dl_time + cu_time
                 elif network_name == "resnet18":
-                    data_dict[worker_count_key][sampler][bs][dim][1] = exec_time
+                    data_dict[worker_count_key][sampler][bs][dim][1] = dl_time + cu_time
                 elif network_name == "resnet50":
-                    data_dict[worker_count_key][sampler][bs][dim][2] = exec_time
+                    data_dict[worker_count_key][sampler][bs][dim][2] = dl_time + cu_time
                 elif network_name == "resnet101":
-                    data_dict[worker_count_key][sampler][bs][dim][3] = exec_time
+                    data_dict[worker_count_key][sampler][bs][dim][3] = dl_time + cu_time
 
         # 2nd pass to normalize value w.r.t 4 worker data
         with open(filepath) as fin:
@@ -85,35 +86,41 @@ if __name__=="__main__":
 
                 if sampler == "graddistbg":
                     if network_name == "mobilenet_v2":
-                        data_dict[worker_count_key][sampler][bs][dim][0] = data_dict[worker_count_key]["default"][bs][dim][4]/exec_time
+                        data_dict[worker_count_key][sampler][bs][dim][0] = data_dict["4worker"]["default"][bs][dim][0]/(dl_time + cu_time)
                     elif network_name == "resnet18":
-                        data_dict[worker_count_key][sampler][bs][dim][1] = data_dict[worker_count_key]["default"][bs][dim][5]/exec_time
+                        data_dict[worker_count_key][sampler][bs][dim][1] = data_dict["4worker"]["default"][bs][dim][0]/(dl_time + cu_time)
                     elif network_name == "resnet50":
-                        data_dict[worker_count_key][sampler][bs][dim][2] = data_dict[worker_count_key]["default"][bs][dim][6]/exec_time
+                        data_dict[worker_count_key][sampler][bs][dim][2] = data_dict["4worker"]["default"][bs][dim][0]/(dl_time + cu_time)
                     elif network_name == "resnet101":
-                        data_dict[worker_count_key][sampler][bs][dim][3] = data_dict[worker_count_key]["default"][bs][dim][7]/exec_time
+                        data_dict[worker_count_key][sampler][bs][dim][3] = data_dict["4worker"]["default"][bs][dim][0]/(dl_time + cu_time)
 
     bias = 0.6/len(NETWORK_NAMES) 
     width = 0.15
     for i, worker_count_key in enumerate(COMPARED_LABELS_DICT):
         offset = (i-1) * bias
         ax.bar(np.arange(0, len(NETWORK_NAMES)) + offset, data_dict[worker_count_key]["graddistbg"][BS][DIM][0:4],
-            label=COMPARED_LABELS_DICT[worker_count_key], width=width, hatch=hatchlist[i])
+               label=COMPARED_LABELS_DICT[worker_count_key], width=width, hatch=hatchlist[i])
+    # print(np.arange(0, len(NETWORK_NAMES)))
+    # set the legends and limit in y axis
+    #ax.legend(ncol=3, loc="upper center", fontsize=6, frameon=False)
+    #ax.get_legend().get_frame().set_alpha(None)
+    #ax.get_legend().get_frame().set_facecolor((1, 1, 1, 0.1))
+    # ax.set_yscale("log")
 
-    plot.tick_params(axis='y', which='major', labelsize=8)
-    plot.xticks(fontsize=6)
+    plot.tick_params(axis='y', which='major', labelsize=6)
+    plot.xticks(fontsize=8)
     plot.xticks(np.arange(0, len(NETWORK_NAMES)), NETWORK_NAMES)
 
     plot.tick_params(axis='y', which='major', labelsize=8)
     plot.yticks(fontsize=8)
-    ax.set_yticks(np.arange(0, 2, 0.25), minor=False)
+    ax.set_yticks(np.arange(0, 2, 0.5), minor=False)
     ax.set_yticks(np.arange(0, 2, 0.1), minor=True)
     plot.grid(axis='y', which='major')
-    ax.set_ylim([0, 1.5])
+    ax.set_ylim([0, 1.9])
     # ax.set_xticklabels(BAR_LABELS, {'fontsize':8, 'fontweight': "bold"})
     ax.set_ylabel("Normalized Speedup", {'fontsize':8})
     ax.set_xlabel("", {'fontsize':8})
     ax.legend(ncol=3, fontsize=8, frameon=False, handlelength=2.1, handleheight=1.1)
     
-    fig.savefig("fig_exec_scalability.png", dpi=600, bbox_inches="tight")
-    # fig.savefig("fig_infer_computelatency.pdf", format="pdf", bbox_inches="tight")
+    fig.savefig("fig_dlcu_scalability.png", dpi=600, bbox_inches="tight")
+    fig.savefig("fig_dlcu_scalability.pdf", format="pdf", bbox_inches="tight")
