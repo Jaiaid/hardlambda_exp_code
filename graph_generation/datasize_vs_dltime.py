@@ -6,7 +6,7 @@ import argparse
 COMPARED_SYSTEM_LABEL_DICT = {"default": "Default", "dali": "Dali", "shade": "SHADE", "graddistbg": "proposed"}
 NETWORK_NAMES_LABEL_DICT = {"mobilenet_v2": "MobileNet-V2", "resnet18": "ResNet18", "resnet50": "ResNet50", "resnet101": "ResNet101"}
 # hatchlist = ['\\', '\\', '\\', '\\', '/', '/', '/', '/', 'o', 'o', 'o', 'o', 'x', 'x', 'x', 'x']
-hatchlist = ['\\', '/', 'o', 'x']
+markerlist = ['+', 'x', 'o', '*']
 DATAFILE_PATH = "4a4000_alldata.tsv"
 
 BS_LIST = [16, 32, 64]
@@ -97,7 +97,7 @@ if __name__=="__main__":
     fig, ax = plot.subplots(figsize=(4, 2.25))
     ax.set_xscale("log")
 
-    for sampler in COMPARED_SYSTEM_LABEL_DICT:
+    for i, sampler in enumerate(COMPARED_SYSTEM_LABEL_DICT):
         plot_data = []
         for network in NETWORK_NAMES_LABEL_DICT:
             for bs in data_dict[network_name][sampler]:
@@ -105,7 +105,7 @@ if __name__=="__main__":
                     plot_data.append([bs*dim*dim*3/1000, data_dict[network_name][sampler][bs][dim][1]])
                     if data_dict[network_name][sampler][bs][dim][1] < 0.25:
                         print(network_name, sampler, dim, bs)
-        ax.scatter([elem[0] for elem in plot_data], [elem[1] for elem in plot_data], label=COMPARED_SYSTEM_LABEL_DICT[sampler])
+        ax.scatter([elem[0] for elem in plot_data], [elem[1] for elem in plot_data], label=COMPARED_SYSTEM_LABEL_DICT[sampler], marker=markerlist[i])
 
             # print(np.arange(0, len(NETWORK_NAMES)))
             # set the legends and limit in y axis
@@ -127,7 +127,7 @@ if __name__=="__main__":
     # ax.set_xticklabels(BAR_LABELS, {'fontsize':8, 'fontweight': "bold"})
     ax.set_ylabel("Normalized Speedup", {'fontsize':8, 'fontweight': "bold"})
     ax.set_xlabel("Batch Data Size (KB)", {'fontsize':8, 'fontweight': "bold"})
-    ax.legend(fontsize=8)
+    ax.legend(fontsize=8, frameon=False, handlelength=4, handleheight=1.1)
     
     fig.savefig("fig_dltime_vs_datasize.png", dpi=600, bbox_inches="tight")
     fig.savefig("fig_dltime_vs_datasize.pdf", format="pdf", bbox_inches="tight")
