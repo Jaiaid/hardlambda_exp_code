@@ -1,0 +1,4 @@
+129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/cache_scripts node_pool.sh 0 0 cifar10 . 640 0 IMGDIM 26379 0 tmp.yaml
+129.21.22.241 1440 ~/hardlambda/code/hardlambda_exp_code/cache_scripts node_pool.sh 1 1 cifar10 . 640 640 IMGDIM 26380 1 tmp.yaml
+129.21.22.242 1440 ~/hardlambda/code/hardlambda_exp_code/cache_scripts node_pool.sh 0 0 cifar10 . 640 1280 IMGDIM 26379 2 tmp.yaml
+129.21.22.242 1440 ~/hardlambda/code/hardlambda_exp_code/cache_scripts node_pool.sh 1 1 cifar10 . 640 1920 IMGDIM 26380 3 tmp.yaml
