@@ -34,12 +34,12 @@ sed -i "88s/protected-mode yes/protected-mode no/" redis_out$REDIS_PORT.conf
 # numa node pool
 echo "starting redis server"
 time numactl --cpunodebind=$CPU_NODE --membind=$MEM_NODE  redis-server redis_out$REDIS_PORT.conf > /dev/null &
-sleep 5
+sleep 30
 echo "starting redis cache populating"
 python3 $ROOT_DIR/cache_scripts/data_provider_redis.py -data $DATASET_TYPE -root $DATASETROOT -dim $IMAGEDIM -size $CACHE_SIZE -offset $OFFSET -conf redis_out.conf -p $REDIS_PORT
-sleep 10
+sleep $((10*($CACHE_SIZE/640)))
 # create the movement service
 echo "creating data movement service"
-python3 $ROOT_DIR/cache_scripts/DataMovementService.py --seqno $SEQNO -cdesc $CACHEDESC_FILE > cache$SEQNO.txt 2>&1 &
+python3 $ROOT_DIR/cache_scripts/DataMovementService.py --seqno $SEQNO -cdesc $CACHEDESC_FILE 1>>cache$SEQNO.txt & #2>>cache$SEQNO.txt 
 echo "created data movement service"
 # set +x
