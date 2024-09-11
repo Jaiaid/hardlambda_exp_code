@@ -308,6 +308,8 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, proces
             # data is read cache can be updated
             cacheupdate_cmd_send_time = time.time()
             data_mover.updatecache(i)
+            # uncomment following if for ablation study of disabling cacheupdate overlap with processing
+            # data_mover.is_busy_check()
             cacheupdate_time.update(time.time() - cacheupdate_cmd_send_time)
 
         process_start_time = time.time()
