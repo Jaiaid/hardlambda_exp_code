@@ -90,6 +90,8 @@ class GradualDistAwareDistributedSamplerBG():
                 (self.rank + 1) * num_sample_per_cache
             )
         )
+        # comment above and uncomment following if wants to do ablation study of not reading from nearest cache
+        # indices = random.sample(range(0, self.total_size), num_sample_per_cache)
         # local shuffling
         random.seed(self.epoch + self.rank)
         random.shuffle(indices)
