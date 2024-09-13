@@ -308,11 +308,11 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, loss_s
         optimizer.step()
 
         loss_store.update(loss.item())
-    # measure accuracy and record loss
-    acc1, acc5 = accuracy(output, target, topk=(1, 5))
+        # measure accuracy and record loss
+        acc1, acc5 = accuracy(output, target, topk=(1, 5))
 
-    acc1_store.update(acc1)
-    acc5_store.update(acc5)
+        acc1_store.update(acc1)
+        acc5_store.update(acc5)
 
 class Summary(Enum):
     NONE = 0
