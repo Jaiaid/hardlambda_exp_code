@@ -140,14 +140,16 @@ def main():
     # only rank 0 process will do that
     if args.rank == 0:
         with open("lossaccuracy_epochs.tsv", "a") as fout:
+            for entry in benchmark_data_dict[network_arch][sampler]:
             # fout.write("Network Arch\tBatch Size\tImage Size\tEpoch\tSampler\tdataload time\tdata process time\tcache update time\texec time\trss(MiB)\tvms(MiB)\tmax rss(MiB)\tmax vms(MiB)\n")
-            loss = benchmark_data_dict[network_arch][sampler][0]
-            acc1 = benchmark_data_dict[network_arch][sampler][1]
-            acc5 = benchmark_data_dict[network_arch][sampler][2]
-            fout.write(
-                "{0},{1},{2},{3},{4},{5},{6},{7}\n".format(
-                    network_arch, args.batch_size, image_size[2], args.epochs, sampler+"_ereduce" if args.epoch_sync else sampler, loss, acc1, acc5)
-            )
+                epoch = entry[0]
+                loss = entry[1]
+                acc1 = entry[2]
+                acc5 = entry[3]
+                fout.write(
+                    "{0},{1},{2},{3},{4},{5},{6},{7},{8}\n".format(
+                        network_arch, args.batch_size, image_size[2], args.epochs, sampler+"_ereduce" if args.epoch_sync else sampler, epoch, loss, acc1, acc5)
+                )
 
 def main_worker(gpu, ngpus_per_node, args, arch):
     global data_mover, benchmark_data_dict
@@ -235,12 +237,17 @@ def main_worker(gpu, ngpus_per_node, args, arch):
                 # sleep for a second
                 time.sleep(1)
 
-    loss = AverageMeter()
-    acc1 = AverageMeter()
-    acc5 = AverageMeter()
-
     try:
+        loss = AverageMeter()
+        acc1 = AverageMeter()
+        acc5 = AverageMeter()
+        benchmark_data_dict[arch][args.sampler] = []
+
         for epoch in range(args.epochs):
+            loss.reset()
+            acc1.reset()
+            acc5.reset()    
+
             if args.distributed:
                 # custom dataloader
                 train_loader.set_epoch(epoch)
@@ -248,8 +255,15 @@ def main_worker(gpu, ngpus_per_node, args, arch):
             # train for one epoch
             train(train_loader, model, criterion, optimizer, epoch, device, args, loss_store=loss, acc1_store=acc1,
                     acc2_store=acc5)
-
+            
+            benchmark_data_dict[arch][args.sampler].append([epoch + 1, loss, acc1, acc5])
             scheduler.step()
+
+            loss.all_reduce()
+            acc1.all_reduce()
+            acc5.all_reduce()
+
+            dist.barrier()
         
         if args.sampler == "graddistbg":
             data_mover.close()
@@ -260,11 +274,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
             redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
             redis_client.flushdb()
 
-        loss.all_reduce()
-        acc1.all_reduce()
-        acc5.all_reduce()
-        benchmark_data_dict[arch][args.sampler] = [epoch, loss, acc1, acc5]
-        dist.barrier()
+        
     except Exception as e:
         print(e)
     finally:
@@ -275,7 +285,6 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, loss_s
     # switch to train mode
     model.train()
 
-    end = time.time()
     for i, (images, target) in enumerate(train_loader):
         # to ensure data is actually read
         images = images.to("cpu")
@@ -293,8 +302,6 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, loss_s
         output = model(images)
         loss = criterion(output, target)
 
-        # measure accuracy and record loss
-        acc1, acc5 = accuracy(output, target, topk=(1, 5))
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
@@ -302,8 +309,11 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, loss_s
         optimizer.step()
 
         loss_store.update(loss.item())
-        acc1_store.update(acc1)
-        acc5_store.update(acc5)
+    # measure accuracy and record loss
+    acc1, acc5 = accuracy(output, target, topk=(1, 5))
+
+    acc1_store.update(acc1)
+    acc5_store.update(acc5)
 
 class Summary(Enum):
     NONE = 0
