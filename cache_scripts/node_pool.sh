@@ -37,9 +37,11 @@ time numactl --cpunodebind=$CPU_NODE --membind=$MEM_NODE  redis-server redis_out
 sleep 30
 echo "starting redis cache populating"
 python3 $ROOT_DIR/cache_scripts/data_provider_redis.py -data $DATASET_TYPE -root $DATASETROOT -dim $IMAGEDIM -size $CACHE_SIZE -offset $OFFSET -conf redis_out.conf -p $REDIS_PORT
-sleep $((10*($CACHE_SIZE/640)))
+sleep $((10*($CACHE_SIZE/100)))
 # create the movement service
 echo "creating data movement service"
 python3 $ROOT_DIR/cache_scripts/DataMovementService.py --seqno $SEQNO -cdesc $CACHEDESC_FILE 1>>cache$SEQNO.txt & #2>>cache$SEQNO.txt 
 echo "created data movement service"
+
+sleep 10
 # set +x
