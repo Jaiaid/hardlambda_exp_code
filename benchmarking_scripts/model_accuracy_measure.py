@@ -145,7 +145,7 @@ def main():
             acc1 = benchmark_data_dict[network_arch][sampler][1]
             acc5 = benchmark_data_dict[network_arch][sampler][2]
             fout.write(
-                "{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12}\n".format(
+                "{0},{1},{2},{3},{4},{5},{6},{7}\n".format(
                     network_arch, args.batch_size, image_size[2], args.epochs, sampler+"_ereduce" if args.epoch_sync else sampler, loss, acc1, acc5)
             )
 
