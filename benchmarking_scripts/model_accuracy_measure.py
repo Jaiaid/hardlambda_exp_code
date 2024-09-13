@@ -99,7 +99,7 @@ parser.add_argument('--dummy', action='store_true', help="use fake data to bench
 # ddl interface related
 parser.add_argument("-if", "--iface", type=str, help="network device name", default="lo", required=False)
 # sampler related
-parser.add_argument("-sampler", "--sampler", choices=["default", "distaware", "shade", "graddist", "graddistbg", "dali"],
+parser.add_argument("-sampler", "--sampler", choices=["default", "shade", "graddistbg", "dali"],
                         help="what sampler will be used")
 # for proposed method specialized dataset initiation
 parser.add_argument("-cachedesc", "--cache-descriptor", type=str, help="yaml file describing caches", default="cache.yaml", required=False)
