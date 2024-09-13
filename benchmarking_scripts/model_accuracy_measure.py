@@ -256,14 +256,14 @@ def main_worker(gpu, ngpus_per_node, args, arch):
             train(train_loader, model, criterion, optimizer, epoch, device, args, loss_store=loss, acc1_store=acc1,
                     acc2_store=acc5)
             
-            benchmark_data_dict[arch][args.sampler].append([epoch + 1, loss, acc1, acc5])
             scheduler.step()
 
             loss.all_reduce()
             acc1.all_reduce()
             acc5.all_reduce()
-
-            dist.barrier()
+            
+            benchmark_data_dict[arch][args.sampler].append([epoch + 1, loss, acc1, acc5])
+            # dist.barrier()
         
         if args.sampler == "graddistbg":
             data_mover.close()
@@ -292,7 +292,6 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, loss_s
         if args.sampler == "graddistbg":
             data_mover.updatecache(i)
 
-        process_start_time = time.time()
         # move data to the same device as model
         image_size = images.shape
         images = images.to(device, non_blocking=False)
