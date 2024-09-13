@@ -254,16 +254,16 @@ def main_worker(gpu, ngpus_per_node, args, arch):
 
             # train for one epoch
             train(train_loader, model, criterion, optimizer, epoch, device, args, loss_store=loss, acc1_store=acc1,
-                    acc2_store=acc5)
+                    acc5_store=acc5)
             
             scheduler.step()
 
             loss.all_reduce()
             acc1.all_reduce()
             acc5.all_reduce()
-            
+            dist.barrier()
+
             benchmark_data_dict[arch][args.sampler].append([epoch + 1, loss, acc1, acc5])
-            # dist.barrier()
         
         if args.sampler == "graddistbg":
             data_mover.close()
