@@ -1,0 +1,7 @@
+cachedict: {
+  0: [ 10.21.12.241:26379, { offset: 0, length: 10000, serviceport: 50524 } ],
+  1: [ 10.21.12.241:26380, { offset: 10000, length: 10000, serviceport: 50525 } ],
+  2: [ 10.21.12.242:26379, { offset: 20000, length: 10000, serviceport: 50524 } ],
+  3: [ 10.21.12.242:26380, { offset: 30000, length: 10000, serviceport: 50525 } ],
+}
+
