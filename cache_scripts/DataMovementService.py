@@ -141,7 +141,7 @@ class DataMoverService():
                     break
                 except ConnectionError as e:
                     connection_refused_count += 1
-                    print("connection establish attempt to {0} failed at cahche no {1}".format(connection_refused_count, ip, serviceport, self.seqno))
+                    print("connection establish attempt to {1}:{2} failed at cahche no {3} after {0} attempts".format(connection_refused_count, ip, serviceport, self.seqno))
                     # sleep for a second
                     time.sleep(1)
             
