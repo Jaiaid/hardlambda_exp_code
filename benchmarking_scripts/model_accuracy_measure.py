@@ -263,7 +263,10 @@ def main_worker(gpu, ngpus_per_node, args, arch):
             acc5.all_reduce()
             dist.barrier()
 
-            benchmark_data_dict[arch][args.sampler].append([epoch + 1, loss, acc1, acc5])
+            # we are doing string otherwise the object reference will be there in the list 
+            # which will cause every loss entry to become the last lose entry
+            # same for acc 
+            benchmark_data_dict[arch][args.sampler].append([epoch + 1, str(loss), str(acc1), str(acc5)])
         
         if args.sampler == "graddistbg":
             data_mover.close()
@@ -300,7 +303,6 @@ def train(train_loader, model, criterion, optimizer, epoch, device, args, loss_s
         # compute output
         output = model(images)
         loss = criterion(output, target)
-
 
         # compute gradient and do SGD step
         optimizer.zero_grad()
