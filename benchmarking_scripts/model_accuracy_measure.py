@@ -11,6 +11,7 @@ import psutil
 import warnings
 import redis
 import datetime
+import numpy as np
 from enum import Enum
 
 import torch
@@ -119,6 +120,9 @@ def main():
     if args.seed is not None:
         random.seed(args.seed)
         torch.manual_seed(args.seed)
+        torch.cuda.manual_seed(args.seed)
+        np.random.seed(args.seed)
+        torch.cuda.use_deterministic(True)
         cudnn.deterministic = True
         cudnn.benchmark = False
         warnings.warn('You have chosen to seed training. '
