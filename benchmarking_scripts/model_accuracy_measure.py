@@ -122,10 +122,11 @@ def main():
         torch.manual_seed(args.seed)
         torch.cuda.manual_seed(args.seed)
         np.random.seed(args.seed)
-        torch.use_deterministic_algorithms(True)
         # it seems it is not easy to make it deterministic
         # some layer may not have deterministic implementation available
+        # Hence use deterministic is commented
         # also see https://stackoverflow.com/questions/70178014/something-about-the-reproducibility-of-pytorch-on-multi-gpu
+        # torch.use_deterministic_algorithms(True)
         cudnn.deterministic = False
         cudnn.benchmark = False
         warnings.warn('You have chosen to seed training. '
