@@ -109,7 +109,8 @@ def main():
     sampler = args.sampler
     iface = args.iface
     os.environ["GLOO_SOCKET_IFNAME"] = str(iface)
-
+    # for deterministic training
+    args.seed = 3400
     benchmark_data_dict[network_arch] = {}
     print("benchmarking for network arch: {0}, sampler: {1}".format(network_arch, sampler))
         
