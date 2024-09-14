@@ -122,7 +122,7 @@ def main():
         torch.manual_seed(args.seed)
         torch.cuda.manual_seed(args.seed)
         np.random.seed(args.seed)
-        torch.cuda.use_deterministic(True)
+        torch.use_deterministic_algorithms(True)
         cudnn.deterministic = True
         cudnn.benchmark = False
         warnings.warn('You have chosen to seed training. '
