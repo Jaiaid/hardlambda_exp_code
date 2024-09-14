@@ -146,9 +146,10 @@ def main():
                 loss = entry[1]
                 acc1 = entry[2]
                 acc5 = entry[3]
+                cachesize = entry[4] 
                 fout.write(
-                    "{0},{1},{2},{3},{4},{5},{6},{7},{8}\n".format(
-                        network_arch, args.batch_size, image_size[2], args.epochs, sampler+"_ereduce" if args.epoch_sync else sampler, epoch, loss, acc1, acc5)
+                    "{0},{1},{2},{3},{4},{5},{6},{7},{8},{9}\n".format(
+                        network_arch, args.batch_size, image_size[2], args.epochs, sampler+"_ereduce" if args.epoch_sync else sampler, epoch, loss, acc1, acc5, cachesize)
                 )
 
 def main_worker(gpu, ngpus_per_node, args, arch):
@@ -204,6 +205,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
 
         ip = cachedatadict[key][0].split(":")[0]
         serviceport = cachedatadict[key][1]["serviceport"]
+        cachesize = cachedatadict[key][1]["length"]
         cache_nodes_dict[i] = [ip, serviceport]
 
     # create the sampler
@@ -266,7 +268,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
             # we are doing string otherwise the object reference will be there in the list 
             # which will cause every loss entry to become the last lose entry
             # same for acc 
-            benchmark_data_dict[arch][args.sampler].append([epoch + 1, str(loss), str(acc1), str(acc5)])
+            benchmark_data_dict[arch][args.sampler].append([epoch + 1, str(loss), str(acc1), str(acc5), cachesize])
         
         if args.sampler == "graddistbg":
             data_mover.close()
@@ -277,7 +279,6 @@ def main_worker(gpu, ngpus_per_node, args, arch):
             redis_client = redis.StrictRedis(host=redis_host, port=redis_port, db=0)
             redis_client.flushdb()
 
-        
     except Exception as e:
         print(e)
     finally:
