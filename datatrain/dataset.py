@@ -136,7 +136,8 @@ class PyTorchDaliPipeline(Pipeline):
         return (sample['data'], sample['label'])
 
     def define_graph(self):
-        return self.input()
+        data, label = self.input()
+        return data, label
 
 
 class DatasetPipeline():
