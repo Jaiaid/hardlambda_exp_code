@@ -129,7 +129,6 @@ class PyTorchDaliPipeline(Pipeline):
         super(PyTorchDaliPipeline, self).__init__(batch_size, num_threads, device_id, seed=12)
         self.input = fn.external_source(source=self.load_data, num_outputs=2, batch=False)
         self.pytorch_dataset = pytorch_dataset
-        self.batch_size = batch_size
 
     def load_data(self):
         # Use the PyTorch dataset to load data
