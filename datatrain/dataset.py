@@ -141,21 +141,22 @@ class PyTorchDaliPipeline(Pipeline):
 
 
 class DatasetPipeline():
-    def __init__(self, dataset:Dataset, batch_size:int, sampler:DistributedSampler=None, num_replicas:int=None) -> None:
+    def __init__(self, dataset:Dataset, batch_size:int, sampler:DistributedSampler=None,
+                 num_replicas:int=None, num_threads:int=0) -> None:
         self.pipeline = None
         self.sampler = sampler
-        if sampler is not None:
-            self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler)
-        elif sampler == "dali":
-            num_threads = int(psutil.cpu_count(logical=False)//2)
+        if sampler == "dali":
+            # num_threads = int(psutil.cpu_count(logical=False)//2)
             device_id = 0
             self.dataset = dataset
             self.pipeline = PyTorchDaliPipeline(
                 pytorch_dataset=dataset, batch_size=batch_size,
                 num_threads=num_threads, device_id=device_id)
-            dali_pipeline.build()
+            self.pipeline.build()
+        elif sampler is not None:
+            self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler)
         else:
-            self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True)
+            self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler)
 
     def set_epoch(self, epoch: int):
         self.sampler.set_epoch(epoch)

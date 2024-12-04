@@ -100,6 +100,8 @@ parser.add_argument("-sampler", "--sampler", default="default", required=False, 
 parser.add_argument("-cachedesc", "--cache-descriptor", type=str, help="yaml file describing caches", default="cache.yaml", required=False)
 # parameter synchornization modification related
 parser.add_argument("-esync", "--epoch-sync", action='store_true', help="use to sync gradient at epoch boundary")
+# how many threads for dali dataloader
+parser.add_argument("-dthread", "--dali-thread", type=int, default=0, help="how many thread dali dataloader will use")
 
 
 def main():
@@ -219,13 +221,15 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         data_sampler = GradualDistAwareDistributedSamplerBG(
             dataset=dataset, num_caches=len(cache_nodes_dict), batch_size=args.batch_size)
         data_sampler.set_rank(rank=args.rank)
-    else:
+    elif args.sampler == "default":
         data_sampler = DefaultDistributedSampler(
             dataset=dataset, num_replicas=args.world_size)
+    else:
+        data_sampler = args.sampler
 
     # edited for custom data loading
     train_loader = DatasetPipeline(dataset=dataset, batch_size=args.batch_size,
-                                    sampler=data_sampler, num_replicas=args.world_size)
+                                    sampler=data_sampler, num_replicas=args.world_size, num_threads=args.dali_thread)
 
     if args.sampler == "graddistbg":
         # try 10 times to connect
