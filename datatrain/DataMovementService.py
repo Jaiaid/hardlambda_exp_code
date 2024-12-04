@@ -6,6 +6,9 @@ import yaml
 import redis
 import time
 import argparse
+import random
+
+random.seed(3400)
 
 from .mindist_chain import generate_mindistchain
 
