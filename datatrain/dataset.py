@@ -7,7 +7,7 @@ import ctypes
 import torch
 import torchvision
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
-import nvidia.dali.ops as ops
+import nvidia.dali.fn as fn
 import nvidia.dali.types as types
 from nvidia.dali.pipeline import Pipeline
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
@@ -127,15 +127,14 @@ class SharedDistRedisPool(Dataset):
 class PyTorchDaliPipeline(Pipeline):
     def __init__(self, pytorch_dataset, batch_size, num_threads, device_id):
         super(PyTorchDaliPipeline, self).__init__(batch_size, num_threads, device_id, seed=12)
-        self.input = ops.PythonFunction(function=self.load_data, output_layout=[("data", types.FLOAT), ("label", types.INT32)])
+        self.input = fn.external_source(source=self.load_data, num_outputs=2, batch=False)
         self.pytorch_dataset = pytorch_dataset
         self.batch_size = batch_size
 
     def load_data(self):
         # Use the PyTorch dataset to load data
-        for _ in range(self.batch_size):
-            sample = self.pytorch_dataset[np.random.randint(len(self.pytorch_dataset))]
-            yield (sample['data'], sample['label'])
+        sample = self.pytorch_dataset[np.random.randint(len(self.pytorch_dataset))]
+        return (sample['data'], sample['label'])
 
     def define_graph(self):
         return self.input()
