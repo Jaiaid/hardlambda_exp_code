@@ -126,7 +126,7 @@ class SharedDistRedisPool(Dataset):
 class PyTorchDaliPipeline(Pipeline):
     def __init__(self, pytorch_dataset, batch_size, num_threads, device_id):
         super(PyTorchDaliPipeline, self).__init__(batch_size, num_threads, device_id, seed=12)
-        self.input = ops.PythonFunction(function=self.load_data, output_layout=[("data", types.FLOAT), ("label", types.INT32)])
+        self.input = fn.python_function(function=self.load_data, output_layout=[("data", types.FLOAT), ("label", types.INT32)])
         self.pytorch_dataset = pytorch_dataset
         self.batch_size = batch_size
 
