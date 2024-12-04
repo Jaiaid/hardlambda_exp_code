@@ -137,7 +137,12 @@ class PyTorchDaliPipeline(Pipeline):
             yield (sample['data'], sample['label'])
 
     def define_graph(self):
-        return self.input()
+        # Use the PyTorch dataset to load data
+        for _ in range(self.batch_size):
+            sample = self.pytorch_dataset[np.random.randint(len(self.pytorch_dataset))]
+            yield (sample['data'], sample['label'])
+
+        # return self.input()
 
 
 class DatasetPipeline():
