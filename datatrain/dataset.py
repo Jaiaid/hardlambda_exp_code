@@ -159,7 +159,8 @@ class DatasetPipeline():
             self.dataloader: DataLoader = torch.utils.data.DataLoader(dataset=dataset, batch_size=batch_size, sampler=sampler)
 
     def set_epoch(self, epoch: int):
-        self.sampler.set_epoch(epoch)
+        if self.sampler != "dali":
+            self.sampler.set_epoch(epoch)
 
     def __iter__(self):
         if self.sampler == "dali":
