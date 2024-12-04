@@ -10,7 +10,7 @@ import nvidia.dali.fn as fn
 import nvidia.dali.types as types
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
-from nvidia.dali import pipeline_def, Pipeline
+from nvidia.dali import pipeline_def, Pipeline, ops
 
 
 
