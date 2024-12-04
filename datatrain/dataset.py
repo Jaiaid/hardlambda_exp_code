@@ -6,11 +6,11 @@ import yaml
 import ctypes
 import torch
 import torchvision
-import nvidia.dali.fn as fn
-import nvidia.dali.types as types
 from torch.utils.data import Dataset, DataLoader, DistributedSampler
+import nvidia.dali.ops as ops
+import nvidia.dali.types as types
+from nvidia.dali.pipeline import Pipeline
 from nvidia.dali.plugin.pytorch import DALIGenericIterator
-from nvidia.dali import pipeline_def, Pipeline, ops
 
 
 
@@ -123,10 +123,11 @@ class SharedDistRedisPool(Dataset):
         return self.cache_query_stat
 
 
+# ChatGPT generated code
 class PyTorchDaliPipeline(Pipeline):
     def __init__(self, pytorch_dataset, batch_size, num_threads, device_id):
         super(PyTorchDaliPipeline, self).__init__(batch_size, num_threads, device_id, seed=12)
-        # self.input = fn.python_function(function=self.load_data) #, output_layouts=[("data", types.FLOAT), ("label", types.INT32)])
+        self.input = ops.PythonFunction(function=self.load_data, output_layout=[("data", types.FLOAT), ("label", types.INT32)])
         self.pytorch_dataset = pytorch_dataset
         self.batch_size = batch_size
 
@@ -137,12 +138,7 @@ class PyTorchDaliPipeline(Pipeline):
             yield (sample['data'], sample['label'])
 
     def define_graph(self):
-        # Use the PyTorch dataset to load data
-        for _ in range(self.batch_size):
-            sample = self.pytorch_dataset[np.random.randint(len(self.pytorch_dataset))]
-            yield (sample['data'], sample['label'])
-
-        # return self.input()
+        return self.input()
 
 
 class DatasetPipeline():
