@@ -143,6 +143,7 @@ def main():
     if args.rank == 0:
         with open("benchmark_iteration_step.tsv", "a") as fout:
             # fout.write("Network Arch\tBatch Size\tImage Size\tEpoch\tSampler\tdataload time\tdata process time\tcache update time\texec time\trss(MiB)\tvms(MiB)\tmax rss(MiB)\tmax vms(MiB)\n")
+            print(benchmark_data_dict)
             datatime = benchmark_data_dict[network_arch][sampler][0]
             cache_time = benchmark_data_dict[network_arch][sampler][1]
             processtime = benchmark_data_dict[network_arch][sampler][2]
@@ -291,6 +292,8 @@ def main_worker(gpu, ngpus_per_node, args, arch):
         benchmark_data_dict[arch][args.sampler] = [data_time, cacheupdate_time, process_time, exec_time, rss_amount, vms_amount, rss_peak, vms_peak]
         dist.barrier()
     except Exception as e:
+        import traceback
+        traceback.format_exc()
         print(e)
     finally:
         dist.destroy_process_group()
