@@ -133,12 +133,24 @@ class PyTorchDaliPipeline(Pipeline):
     def load_data(self):
         # Use the PyTorch dataset to load data
         sample = self.pytorch_dataset[np.random.randint(len(self.pytorch_dataset))]
-        return (sample['data'], sample['label'])
+        return sample
 
     def define_graph(self):
         data, label = self.input
         return data, label
 
+# Custom Iterator to Return Tuples
+class DALIDataTupleIterator(DALIGenericIterator):
+    def __init__(self, *args, **kwargs):
+        super(DALIDataTupleIterator, self).__init__(*args, **kwargs)
+
+    def __next__(self):
+        # Call parent class's next method to fetch the batch
+        batch = super(DALIDataTupleIterator, self).__next__()
+        # Extract and return data and label as a tuple
+        data = batch[0]["data"]
+        label = batch[0]["label"]
+        return data, label
 
 class DatasetPipeline():
     def __init__(self, dataset:Dataset, batch_size:int, sampler:DistributedSampler=None,
@@ -164,7 +176,7 @@ class DatasetPipeline():
 
     def __iter__(self):
         if self.sampler == "dali":
-            return DALIGenericIterator(
+            return DALIDataTupleIterator(
                 pipelines=[self.pipeline], output_map=["data", "label"],
                 size=len(self.dataset)
             )
