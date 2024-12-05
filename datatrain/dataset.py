@@ -133,7 +133,7 @@ class PyTorchDaliPipeline(Pipeline):
     def load_data(self):
         # Use the PyTorch dataset to load data
         sample = self.pytorch_dataset[np.random.randint(len(self.pytorch_dataset))]
-        return sample
+        return sample[0], np.array([sample[1]])
 
     def define_graph(self):
         data, label = self.input
@@ -150,7 +150,7 @@ class DALIDataTupleIterator(DALIGenericIterator):
         # Extract and return data and label as a tuple
         data = batch[0]["data"]
         label = batch[0]["label"]
-        return data, label
+        return data, label.view(-1)
 
 class DatasetPipeline():
     def __init__(self, dataset:Dataset, batch_size:int, sampler:DistributedSampler=None,
