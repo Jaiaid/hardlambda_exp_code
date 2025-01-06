@@ -200,7 +200,11 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     if args.sampler != "shade":
         dataset = SharedDistRedisPool(cachedesc_filepath=args.cache_descriptor)
     else:
-        dataset = ShadeDataset(cachedesc_filepath=args.cache_descriptor, port_num=6379+args.rank)
+        # IMPORTANT:
+        # WE ASSUME IN A HOST AT MOST TWO DIFFERENT WORKER CAN BE
+        # THAT'S WHY THIS MODULUS, TO MAKE IT GENERAL WE HAVE TO BOTH SCRIPTIFY REDIS START AT PARTICULAR NODE 
+        # AND PROVIDE WHICH REDIS TO CONNECT AS PARAMETER
+        dataset = ShadeDataset(cachedesc_filepath=args.cache_descriptor, port_num=6379+(args.rank%2))
 
     with open(args.cache_descriptor) as fin:
         cachedatadict = yaml.safe_load(fin)
