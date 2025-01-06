@@ -200,7 +200,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     if args.sampler != "shade":
         dataset = SharedDistRedisPool(cachedesc_filepath=args.cache_descriptor)
     else:
-        dataset = ShadeDataset(cachedesc_filepath=args.cache_descriptor)
+        dataset = ShadeDataset(cachedesc_filepath=args.cache_descriptor, port_num=6379+args.rank)
 
     with open(args.cache_descriptor) as fin:
         cachedatadict = yaml.safe_load(fin)
