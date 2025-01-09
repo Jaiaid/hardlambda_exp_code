@@ -224,7 +224,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     # create the sampler
     if args.sampler == "shade":
         data_sampler = ShadeSampler(
-            dataset=dataset, num_replicas=args.world_size, batch_size=args.batch_size, host_ip="0.0.0.0")
+            dataset=dataset, num_replicas=args.world_size, batch_size=args.batch_size, host_ip="0.0.0.0", port_num=6379+(args.rank%2))
     elif args.sampler == "graddistbg":
         data_sampler = GradualDistAwareDistributedSamplerBG(
             dataset=dataset, num_caches=len(cache_nodes_dict), batch_size=args.batch_size)

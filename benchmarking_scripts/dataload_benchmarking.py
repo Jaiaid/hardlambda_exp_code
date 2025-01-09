@@ -6,7 +6,6 @@ import random
 import math
 import yaml
 import time
-import subprocess
 import psutil
 import warnings
 import redis
@@ -34,6 +33,7 @@ sys.path.append("..")
 
 # custom dataset, dataloader related packages
 from datatrain.dataset import SharedDistRedisPool, DatasetPipeline, PyTorchDaliPipeline, GraddistBGPipeline
+from datatrain.baseline_dataloaders.dataloader import
 from datatrain.DistribSampler import DefaultDistributedSampler, GradualDistAwareDistributedSamplerBG
 from datatrain.shade_modified import ShadeDataset, ShadeSampler
 from datatrain.DataMovementService import DataMoverServiceInterfaceClient
@@ -94,7 +94,7 @@ parser.add_argument('--dummy', action='store_true', help="use fake data to bench
 # ddl interface related
 parser.add_argument("-if", "--iface", type=str, help="network device name", default="lo", required=False)
 # sampler related
-parser.add_argument("-sampler", "--sampler", default="default", required=False, choices=["default", "shade", "graddistbg", "dali"],
+parser.add_argument("-sampler", "--sampler", default="default", required=False, choices=["default", "shade", "graddistbg", "dali", "isa", "icache", "quiver"],
                         help="what sampler will be used")
 # for proposed method specialized dataset initiation
 parser.add_argument("-cachedesc", "--cache-descriptor", type=str, help="yaml file describing caches", default="cache.yaml", required=False)
@@ -198,7 +198,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     if args.sampler != "shade":
         dataset = SharedDistRedisPool(cachedesc_filepath=args.cache_descriptor)
     else:
-        dataset = ShadeDataset(cachedesc_filepath=args.cache_descriptor)
+        dataset = ShadeDataset(cachedesc_filepath=args.cache_descriptor, port_num=6379+(args.rank%2))
 
     with open(args.cache_descriptor) as fin:
         cachedatadict = yaml.safe_load(fin)
@@ -217,7 +217,7 @@ def main_worker(gpu, ngpus_per_node, args, arch):
     # create the sampler
     if args.sampler == "shade":
         data_sampler = ShadeSampler(
-            dataset=dataset, num_replicas=args.world_size, batch_size=args.batch_size, host_ip="0.0.0.0")
+            dataset=dataset, num_replicas=args.world_size, batch_size=args.batch_size, host_ip="0.0.0.0", port_num=6379+(args.rank%2))
     elif args.sampler == "graddistbg":
         data_sampler = GradualDistAwareDistributedSamplerBG(
             dataset=dataset, num_caches=len(cache_nodes_dict), batch_size=args.batch_size)
