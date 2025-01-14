@@ -6,7 +6,7 @@ cd $1
 # if repo is there remove it
 # needed for multiple attempt
 rm -rf hardlambda_exp_code
-git clone https://Jaiaid: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@github.com/Jaiaid/hardlambda_exp_code
+git clone <the repo link>
 # if venv already there remove it
 # needed in case of multiple run
 rm -rf venv
