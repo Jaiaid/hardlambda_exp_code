@@ -1,4 +1,0 @@
-192.168.0.1 22 cache_scripts node_pool.sh 0 0 cifar10 . 640 0 IMGDIM 26379 0 cache_confcloudlab_4worker.yaml
-192.168.0.2 22 cache_scripts node_pool.sh 0 0 cifar10 . 640 640 IMGDIM 26380 1 cache_confcloudlab_4worker.yaml
-192.168.0.3 22 cache_scripts node_pool.sh 0 0 cifar10 . 640 1280 IMGDIM 26381 2 cache_confcloudlab_4worker.yaml
-192.168.0.4 22 cache_scripts node_pool.sh 0 0 cifar10 . 640 1920 IMGDIM 26382 3 cache_confcloudlab_4worker.yaml

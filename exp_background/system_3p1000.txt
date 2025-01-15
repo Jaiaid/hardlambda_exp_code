@@ -1,3 +1,0 @@
-129.21.22.239 1440 ~/hardlambda/code/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 3 tcp://10.21.12.239:44144 eno2 0 cache_conf4.yaml IMGDIM
-129.21.22.239 1440 ~/hardlambda/code/hardlambda_exp_code/exp_background process.sh 1 1 NETARCH SAMPLER BS EPOCH 3 tcp://10.21.12.239:44144 eno2 1 cache_conf4.yaml IMGDIM
-129.21.22.222 1440 ~/hardlambda/code/hardlambda_exp_code/exp_background process.sh 0 0 NETARCH SAMPLER BS EPOCH 3 tcp://10.21.12.239:44144 eno4 2 cache_conf4.yaml IMGDIM
